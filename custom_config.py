@@ -83,6 +83,7 @@ def autostart():
     procs.setxkbmap()
     procs.unclutter()
     procs.xcompmgr()
+    procs.network_manager()
     procs.xfce4_power_manager()
     procs.screensaver()
     procs.xss_lock()

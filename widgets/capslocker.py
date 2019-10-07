@@ -30,16 +30,18 @@ class CapsLockIndicator(base.ThreadPoolText):
     """Really simple widget to show the current Caps Lock state."""
 
     orientations = base.ORIENTATION_HORIZONTAL
-    defaults = [('update_interval', 0.5, 'Update Time in seconds.')]
+    defaults = [('update_interval', 0.5, 'Update Time in seconds.'),
+                ('send_notifications', True, 'Turn notifications on or off.')]
 
     def __init__(self, **config):
         base.ThreadPoolText.__init__(self, "", **config)
         self.add_defaults(self.defaults)
         self.lock_msg = "| A⇬ |"
         self.is_locked = None
-        self.notification = notify2.Notification("Caps_Lock on", self.lock_msg)
-        self.notification.timeout = -1
-        self.notification.urgency = notify2.URGENCY_CRITICAL
+        if self.send_notifications:
+            self.notification = notify2.Notification("Caps_Lock on", self.lock_msg)
+            self.notification.timeout = -1
+            self.notification.urgency = notify2.URGENCY_CRITICAL
 
     def get_state(self):
         """Return a list with the current state of the keys."""
@@ -57,7 +59,7 @@ class CapsLockIndicator(base.ThreadPoolText):
     def poll(self):
         """Poll content for the text box."""
         new_state = self.get_state()
-        if self.is_locked != new_state:
+        if self.send_notifications and self.is_locked != new_state:
             if new_state:
                 self.notification.show()
             else:

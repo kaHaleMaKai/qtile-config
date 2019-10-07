@@ -1,9 +1,8 @@
 import os
-# from keys import Key
 from libqtile.config import EzKey
 from libqtile.command import lazy
 import procs
-from util import prev_group, next_group, get_resolutions #, next_screen, prev_screen
+from util import prev_group, next_group, spawncmd, res
 
 modifier_keys = {
    "M": "M",
@@ -32,8 +31,6 @@ if "QTILE_MOD_KEY" in os.environ:
 else:
     mod_abbrev = default_mod_key
 mod_key = inverse_modifier_keys[mod_abbrev]
-
-res = get_resolutions()
 
 
 class KeyList(list):
@@ -79,8 +76,8 @@ class KeyList(list):
 
 
 keys = KeyList({
-    "M-<Left>":        prev_group(res),
-    "M-<Right>":       next_group(res),
+    "M-<Left>":        prev_group(),
+    "M-<Right>":       next_group(),
     "M-C-<Left>":      lazy.prev_screen(),
     "M-C-<Right>":     lazy.next_screen(),
     "M-p":             lazy.screen.toggle_group(),
@@ -103,7 +100,7 @@ keys = KeyList({
     "M-S-<period>":    lazy.window.kill(),
     "M-S-r":           lazy.restart(),
     "M-S-q":           lazy.shutdown(),
-    "M-r":             lazy.spawncmd(),
+    "M-r":             spawncmd,
     "M-<Return>":      procs.terminal,
     "M-S-<Left>":      procs.shiftred["r-"],
     "M-S-<Right>":     procs.shiftred["r+"],

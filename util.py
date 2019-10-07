@@ -1,9 +1,11 @@
-import re
-import subprocess
+# import re
+# import subprocess
 from libqtile.command import lazy
 
 
 def get_resolutions():
+    import re
+    import subprocess
     cmd = ['xrandr']
     cmd2 = ['grep', '*']
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -17,23 +19,24 @@ def get_resolutions():
         resolutions.append({"width": w, "height": h})
     return resolutions
 
+res = get_resolutions()
 
-def go_to_group(res, group):
+
+def go_to_group(group):
 
     @lazy.function
     def f(qtile):
-        if len(res) == 2 and group.name in "abcdef":
+        if len(qtile.screens) == 2 and group.name in "abcdef":
             screen = 1
         else:
             screen = 0
-        print(f"group: {group.name}, screen: {screen}")
         qtile.cmd_to_screen(screen)
         qtile.groups_map[group.name].cmd_toscreen()
 
     return f
 
 
-def next_group(res):
+def next_group():
     if len(res) == 1:
         return lazy.screen.next_group()
 
@@ -45,14 +48,13 @@ def next_group(res):
         idx = groups.index(group)
         next_group = groups[(idx+1) % len(groups)]
         screen = 0 if next_group < "a" else 1
-        print(f"group: {group}, screen: {screen}")
         qtile.cmd_to_screen(screen)
         qtile.groups_map[next_group].cmd_toscreen()
 
     return f
 
 
-def prev_group(res):
+def prev_group():
     if len(res) == 1:
         return lazy.screen.prev_group()
 
@@ -64,8 +66,13 @@ def prev_group(res):
         idx = groups.index(group)
         prev_group = groups[(idx-1) % len(groups)]
         screen = 0 if prev_group < "a" else 1
-        print(f"group: {group}, screen: {screen}")
         qtile.cmd_to_screen(screen)
         qtile.groups_map[prev_group].cmd_toscreen()
 
     return f
+
+
+@lazy.function
+def spawncmd(qtile):
+    screen = qtile.current_screen.index
+    return qtile.cmd_spawncmd(widget=f"prompt-{screen}")

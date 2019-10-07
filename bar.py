@@ -1,5 +1,6 @@
 from libqtile import bar, widget
 from widgets.capslocker import CapsLockIndicator
+import util
 
 settings = dict(
     background=None,
@@ -10,11 +11,13 @@ settings = dict(
 # cpu_graph = widget.CPUGraph()
 
 
-def get_bar(screen_idx, res):
-    prompt = widget.Prompt(prompt="» ", font="Hack", padding=10)
+def get_bar(screen_idx):
+    is_primary = screen_idx == 0
+
+    prompt = widget.Prompt(name=f"prompt-{screen_idx}", prompt="» ", font="Hack", padding=10)
     task_list = widget.TaskList()
     clock = widget.Clock(format='%Y-%m-%d %H:%M')
-    caps_lock = CapsLockIndicator()
+    caps_lock = CapsLockIndicator(send_notifications=is_primary)
     layout = widget.CurrentLayoutIcon(scale=0.7)
     # net = widget.Net(interface="enp0s25")
     notify = widget.Notify()
@@ -26,20 +29,19 @@ def get_bar(screen_idx, res):
         volume_app="pavucontrol"
     )
 
-    primary = screen_idx == 0
-    if len(res) == 2:
-        if primary:
+    if len(util.res) == 2:
+        if is_primary:
             group_box = widget.GroupBox(visible_groups=[ch for ch in "123456789"])
         else:
             group_box = widget.GroupBox(visible_groups=[ch for ch in "abcdef"])
     else:
         group_box = widget.GroupBox()
 
-    args = [group_box, prompt, task_list]
-    if primary:
-        args.append(widget.Systray())
+    widgets = [group_box, prompt, task_list]
+    if is_primary:
+        widgets.append(widget.Systray())
 
-    args.extend((
+    widgets.extend((
         # cpu_graph,
         # net,
         notify,
@@ -50,4 +52,4 @@ def get_bar(screen_idx, res):
         layout,
     ))
 
-    return bar.Bar(args, 24)
+    return bar.Bar(widgets, 24)

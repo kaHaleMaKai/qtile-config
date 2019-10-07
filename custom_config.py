@@ -12,10 +12,8 @@ from floating_rules import get_floating_rules
 from key_config import keys, mod_key
 from opacity import add_opacity  # NOQA
 from bar import get_bar
-from util import get_resolutions, go_to_group
+from util import res, go_to_group
 
-
-res = get_resolutions()
 
 group_dict = {name: Group(name) for name in "123456789abcdef"}
 groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
@@ -30,7 +28,7 @@ for g, match in matcher.items():
 
 for group in groups:
     keys.add_keys({
-        f"M-{group.name}": go_to_group(res, group),
+        f"M-{group.name}": go_to_group(group),
         # f"M-{group.name}": lazy.group[group.name].toscreen(),
         f"M-S-{group.name}": lazy.window.togroup(group.name),
     })
@@ -55,13 +53,7 @@ widget_defaults = dict(
 )
 extension_defaults = widget_defaults.copy()
 
-screens = [Screen(top=get_bar(0, res))]
-if len(res) == 2:
-    screens.append(
-        Screen(
-            top=get_bar(1, res),
-        )
-    )
+screens = [Screen(top=get_bar(idx)) for idx, _ in enumerate(res)]
 
 # Drag floating layouts.
 mouse = [

@@ -1,7 +1,7 @@
 import os
 from libqtile.config import EzKey
 from libqtile.command import lazy
-from util import prev_group, next_group, spawncmd, move_to_other_screen
+from util import prev_group, next_group, spawncmd, go_to_screen, move_to_screen
 
 modifier_keys = {
    "M": "M",
@@ -75,10 +75,10 @@ class KeyList(list):
 keys = KeyList({
     "M-<Left>":        prev_group(),
     "M-<Right>":       next_group(),
-    "M-C-<Left>":      lazy.prev_screen(),
-    "M-C-<Right>":     lazy.next_screen(),
-    "M-A-<Left>":      move_to_other_screen(),
-    "M-A-<Right>":     move_to_other_screen(),
+    "M-C-<Left>":      go_to_screen(0),
+    "M-C-<Right>":     go_to_screen(1),
+    "M-A-<Left>":      move_to_screen(0),
+    "M-A-<Right>":     move_to_screen(1),
     "M-p":             lazy.screen.toggle_group(),
     "M-S-p":           lazy.group.focus_back(),
     "M-h":             lazy.layout.left(),
@@ -89,8 +89,10 @@ keys = KeyList({
     "M-S-l":           lazy.layout.shuffle_right(),
     "M-S-j":           lazy.layout.shuffle_down(),
     "M-S-k":           lazy.layout.shuffle_up(),
-    "M-C-j":           lazy.layout.shuffle_down(),
-    "M-C-k":           lazy.layout.shuffle_up(),
+    "M-C-h":           lazy.layout.grow_left(),
+    "M-C-l":           lazy.layout.grow_right(),
+    "M-C-j":           lazy.layout.grow_down(),
+    "M-C-k":           lazy.layout.grow_up(),
     "M-z":             lazy.window.toggle_fullscreen(),
     "M-n":             lazy.window.toggle_minimize(),
     "M-t":             lazy.window.toggle_floating(),
@@ -118,7 +120,7 @@ keys = KeyList({
     "M-<udiaeresis>":  "rofimoji",
     "M-S-u":           "toggle-unclutter",
     "M-S-s":           "deepin-screenshot",
-    "M-C-l":           "cinnamon-screesaver-command --lock",
+    "M-C-o":           "cinnamon-screensaver-command --lock",
     "M-<F1>":          "configure-screens small",
     "M-<F2>":          "configure-screens dual-external",
     "M-<F3>":          "configure-screens large",

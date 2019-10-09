@@ -19,6 +19,7 @@ def get_resolutions():
         resolutions.append({"width": w, "height": h})
     return resolutions
 
+
 res = get_resolutions()
 
 
@@ -78,15 +79,31 @@ def spawncmd(qtile):
     return qtile.cmd_spawncmd(widget=f"prompt-{screen}")
 
 
-def move_to_other_screen():
+def move_to_screen(dest_screen):
     if len(res) == 1:
         return lambda *args, **kwargs: None
 
     @lazy.function
     def f(qtile):
         idx = qtile.current_screen.index
-        other_screen = qtile.screens[(idx + 1) % len(qtile.screens)]
+        if dest_screen == idx:
+            return
+        other_screen = qtile.screens[dest_screen]
         g = other_screen.group.name
         qtile.current_window.togroup(g)
+
+    return f
+
+
+def go_to_screen(dest_screen):
+    if len(res) == 1:
+        return lambda *args, **kwargs: None
+
+    @lazy.function
+    def f(qtile):
+        idx = qtile.current_screen.index
+        if dest_screen == idx:
+            return
+        qtile.cmd_to_screen(dest_screen)
 
     return f

@@ -29,7 +29,6 @@ for g, match in matcher.items():
 for group in groups:
     keys.add_keys({
         f"M-{group.name}": go_to_group(group),
-        # f"M-{group.name}": lazy.group[group.name].toscreen(),
         f"M-S-{group.name}": lazy.window.togroup(group.name),
     })
 

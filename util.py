@@ -76,3 +76,17 @@ def prev_group():
 def spawncmd(qtile):
     screen = qtile.current_screen.index
     return qtile.cmd_spawncmd(widget=f"prompt-{screen}")
+
+
+def move_to_other_screen():
+    if len(res) == 1:
+        return lambda *args, **kwargs: None
+
+    @lazy.function
+    def f(qtile):
+        idx = qtile.current_screen.index
+        other_screen = qtile.screens[(idx + 1) % len(qtile.screens)]
+        g = other_screen.group.name
+        qtile.current_window.togroup(g)
+
+    return f

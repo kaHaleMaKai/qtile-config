@@ -1,8 +1,7 @@
 import os
 from libqtile.config import EzKey
 from libqtile.command import lazy
-import procs
-from util import prev_group, next_group, spawncmd, res
+from util import prev_group, next_group, spawncmd, move_to_other_screen
 
 modifier_keys = {
    "M": "M",
@@ -65,9 +64,7 @@ class KeyList(list):
 
         li = []
         for cmd in cmds:
-            if isinstance(cmd, procs.Proc):
-                action = lazy.spawn(cmd.get_args())
-            elif isinstance(cmd, str):
+            if isinstance(cmd, str):
                 action = lazy.spawn(cmd)
             else:
                 action = cmd
@@ -80,16 +77,20 @@ keys = KeyList({
     "M-<Right>":       next_group(),
     "M-C-<Left>":      lazy.prev_screen(),
     "M-C-<Right>":     lazy.next_screen(),
+    "M-A-<Left>":      move_to_other_screen(),
+    "M-A-<Right>":     move_to_other_screen(),
     "M-p":             lazy.screen.toggle_group(),
     "M-S-p":           lazy.group.focus_back(),
     "M-h":             lazy.layout.left(),
     "M-l":             lazy.layout.right(),
     "M-j":             lazy.layout.down(),
     "M-k":             lazy.layout.up(),
+    "M-S-h":           lazy.layout.shuffle_left(),
+    "M-S-l":           lazy.layout.shuffle_right(),
     "M-S-j":           lazy.layout.shuffle_down(),
     "M-S-k":           lazy.layout.shuffle_up(),
-    "M-S-l":           lazy.layout.increase_ratio(),
-    "M-S-h":           lazy.layout.decrease_ratio(),
+    "M-C-j":           lazy.layout.shuffle_down(),
+    "M-C-k":           lazy.layout.shuffle_up(),
     "M-z":             lazy.window.toggle_fullscreen(),
     "M-n":             lazy.window.toggle_minimize(),
     "M-t":             lazy.window.toggle_floating(),
@@ -101,23 +102,27 @@ keys = KeyList({
     "M-S-r":           lazy.restart(),
     "M-S-q":           lazy.shutdown(),
     "M-r":             spawncmd,
-    "M-<Return>":      procs.terminal,
-    "M-S-<Left>":      procs.shiftred["r-"],
-    "M-S-<Right>":     procs.shiftred["r+"],
-    "M-S-<Down>":      procs.shiftred["b-"],
-    "M-S-<Up>":        procs.shiftred["b+"],
-    "M-S-0":           procs.shiftred["4200:.8"],
-    "M-0":             procs.shiftred["5100:1"],
-    "M-C-0":           procs.shiftred["6500:1"],
-    "M-<Prior>":       procs.opacity["--dec", "0.025"],
-    "M-<Next>":        procs.opacity["--inc", "0.025"],
-    "M-<plus>":        procs.rofi["window"],
-    "M-<numbersign>":  procs.rofi["combi"],
-    "M-<F10>":         procs.rofi_pass["rofi-pass"],
-    "M-<udiaeresis>":  procs.rofimoji,
-    "M-S-u":           procs.toggle_unclutter,
-    "M-C-l":           procs.screensaver_cmd,
-    "<XF86AudioMute>": procs.volume["--toggle"],
-    "<XF86AudioLowerVolume>": procs.volume["--down"],
-    "<XF86AudioRaiseVolume>": procs.volume["--up"],
+    "M-<Return>":      "xfce4-terminal -e zsh",
+    "M-S-<Left>":      "shitred r-",
+    "M-S-<Right>":     "shitred r+",
+    "M-S-<Down>":      "shitred b-",
+    "M-S-<Up>":        "shitred b+",
+    "M-S-0":           "shiftred 4200:.8",
+    "M-0":             "shiftred 5100:1",
+    "M-C-0":           "shiftred 6500:1",
+    "M-<Prior>":       "transset --actual --dec 0.025",
+    "M-<Next>":        "transset --actual --inc 0.025",
+    "M-<plus>":        "rofi -i -show window",
+    "M-<numbersign>":  "rofi -i -show combi",
+    "M-<F10>":         "rofi-pass",
+    "M-<udiaeresis>":  "rofimoji",
+    "M-S-u":           "toggle-unclutter",
+    "M-S-s":           "deepin-screenshot",
+    "M-C-l":           "cinnamon-screesaver-command --lock",
+    "M-<F1>":          "configure-screens small",
+    "M-<F2>":          "configure-screens dual-external",
+    "M-<F3>":          "configure-screens large",
+    "<XF86AudioMute>": "configure-volume --toggle",
+    "<XF86AudioLowerVolume>": "configure-volume --down",
+    "<XF86AudioRaiseVolume>": "configure-volume --up",
 })

@@ -1,15 +1,20 @@
 from libqtile import bar, widget
 from widgets.capslocker import CapsLockIndicator
 import util
+import color
 
 settings = dict(
     background=None,
     borderwidth=0,
-    foreground="d0d0d0"
+    foreground=color.BRIGHT_GRAY,
 )
 
 # battery = widget.BatteryIcon()
 # cpu_graph = widget.CPUGraph()
+
+
+def space():
+    return widget.Spacer(length=10)
 
 
 def get_bar(screen_idx):
@@ -22,7 +27,7 @@ def get_bar(screen_idx):
         padding=10,
         **settings
     )
-    task_list = widget.TaskList(highlight_method="block", border="404000", **settings)
+    task_list = widget.TaskList(highlight_method="block", border=color.DARK_ORANGE, **settings)
     clock = widget.Clock(format='%Y-%m-%d %H:%M', **settings)
     caps_lock = CapsLockIndicator(send_notifications=is_primary, **settings)
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
@@ -32,16 +37,15 @@ def get_bar(screen_idx):
         cardid=0,
         device=None,
         theme_path="/usr/share/icons/HighContrast/256x256",
-        fontsize=12,
         volume_app="pavucontrol",
         **settings
     )
 
     group_settings = {
         "highlight_method": "block",
-        "active": "b0b000",
-        "this_screen_border": "102a3b",
-        "this_current_screen_border": "184062",
+        "active": color.BRIGHT_ORANGE,
+        "this_screen_border": color.DARK_BLUE_GRAY,
+        "this_current_screen_border": color.MID_BLUE_GRAY,
         "hide_unused": False
     }
     if len(util.res) == 2:
@@ -54,9 +58,10 @@ def get_bar(screen_idx):
 
     widgets = [group_box, prompt, task_list]
     if is_primary:
-        widgets.append(widget.Systray(**settings))
+        widgets.append(widget.Systray(icon_size=18, **settings))
 
     widgets.extend((
+        space(),
         # cpu_graph,
         # net,
         notify,
@@ -67,4 +72,8 @@ def get_bar(screen_idx):
         layout,
     ))
 
-    return bar.Bar(widgets, 24)
+    return bar.Bar(
+        widgets=widgets,
+        size=22,
+        opacity=0.9
+    )

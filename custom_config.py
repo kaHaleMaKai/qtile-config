@@ -12,7 +12,7 @@ from floating_rules import get_floating_rules
 from key_config import keys, mod_key
 from opacity import add_opacity  # NOQA
 from bar import get_bar
-from util import res, go_to_group
+from util import num_screens, go_to_group
 
 
 group_dict = {name: Group(name) for name in "123456789abcdef"}
@@ -52,7 +52,7 @@ widget_defaults = dict(
 )
 extension_defaults = widget_defaults.copy()
 
-screens = [Screen(top=get_bar(idx)) for idx, _ in enumerate(res)]
+screens = [Screen(top=get_bar(idx)) for idx in range(num_screens)]
 
 # Drag floating layouts.
 mouse = [

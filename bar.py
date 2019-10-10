@@ -24,9 +24,12 @@ def get_bar(screen_idx):
     group_settings = {
         "highlight_method": "block",
         "active": color.BRIGHT_ORANGE,
+        "inactive": color.DARK_GRAY,
         "this_screen_border": color.DARK_BLUE_GRAY,
         "this_current_screen_border": color.MID_BLUE_GRAY,
-        "hide_unused": False
+        "hide_unused": False,
+        "urgent_border": color.BRIGHT_RED,
+        "disable_drag": True,
     }
     if util.num_screens > 1:
         if is_primary:

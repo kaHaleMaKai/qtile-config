@@ -21,6 +21,7 @@ def get_resolutions():
 
 
 res = get_resolutions()
+num_screens = len(res)
 
 
 def go_to_group(group):

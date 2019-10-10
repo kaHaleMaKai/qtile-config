@@ -19,6 +19,33 @@ def space():
 
 def get_bar(screen_idx):
     is_primary = screen_idx == 0
+    widgets = []
+
+    group_settings = {
+        "highlight_method": "block",
+        "active": color.BRIGHT_ORANGE,
+        "this_screen_border": color.DARK_BLUE_GRAY,
+        "this_current_screen_border": color.MID_BLUE_GRAY,
+        "hide_unused": False
+    }
+    if util.num_screens > 1:
+        if is_primary:
+            group_box = widget.GroupBox(visible_groups=[ch for ch in "123456789"], **settings, **group_settings)
+        else:
+            group_box = widget.GroupBox(visible_groups=[ch for ch in "abcdef"], **settings, **group_settings)
+    else:
+        group_box = widget.GroupBox(**settings, **group_settings)
+    widgets.append(group_box)
+
+    if util.num_screens > 1:
+        current_screen = widget.CurrentScreen(
+            active_text="✔",
+            inactive_text="✖",
+            active_color=color.DARK_ORANGE,
+            inactive_color=color.BLACK,
+            **settings
+        )
+        widgets.append(current_screen)
 
     prompt = widget.Prompt(
         name=f"prompt-{screen_idx}",
@@ -27,7 +54,16 @@ def get_bar(screen_idx):
         padding=10,
         **settings
     )
-    task_list = widget.TaskList(highlight_method="block", border=color.DARK_ORANGE, **settings)
+    widgets.append(prompt)
+    task_list = widget.TaskList(
+        highlight_method="block",
+        border=color.DARK_ORANGE,
+        **settings
+    )
+    widgets.append(task_list)
+    if is_primary:
+        widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
+
     clock = widget.Clock(format='%Y-%m-%d %H:%M', **settings)
     caps_lock = CapsLockIndicator(send_notifications=is_primary, **settings)
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
@@ -40,25 +76,6 @@ def get_bar(screen_idx):
         volume_app="pavucontrol",
         **settings
     )
-
-    group_settings = {
-        "highlight_method": "block",
-        "active": color.BRIGHT_ORANGE,
-        "this_screen_border": color.DARK_BLUE_GRAY,
-        "this_current_screen_border": color.MID_BLUE_GRAY,
-        "hide_unused": False
-    }
-    if len(util.res) == 2:
-        if is_primary:
-            group_box = widget.GroupBox(visible_groups=[ch for ch in "123456789"], **settings, **group_settings)
-        else:
-            group_box = widget.GroupBox(visible_groups=[ch for ch in "abcdef"], **settings, **group_settings)
-    else:
-        group_box = widget.GroupBox(**settings, **group_settings)
-
-    widgets = [group_box, prompt, task_list]
-    if is_primary:
-        widgets.append(widget.Systray(icon_size=18, **settings))
 
     widgets.extend((
         space(),
@@ -74,6 +91,6 @@ def get_bar(screen_idx):
 
     return bar.Bar(
         widgets=widgets,
-        size=22,
+        size=23,
         opacity=0.9
     )

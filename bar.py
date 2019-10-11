@@ -43,8 +43,8 @@ def get_bar(screen_idx):
     if util.num_screens > 1:
         current_screen = widget.CurrentScreen(
             active_text="✔",
-            inactive_text="✖",
-            active_color=color.DARK_ORANGE,
+            inactive_text="",
+            active_color=color.BRIGHT_ORANGE,
             inactive_color=color.BLACK,
             **settings
         )

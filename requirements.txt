@@ -1,9 +1,7 @@
 asn1crypto==0.24.0
 backcall==0.1.0
-cairocffi==1.0.2
 cffi==1.12.3
 cryptography==2.7
-dbus-python==1.2.8
 decorator==4.4.0
 entrypoints==0.3
 ipython==7.7.0
@@ -16,7 +14,6 @@ notify2==0.3.1
 parso==0.5.1
 pexpect==4.7.0
 pickleshare==0.7.5
-pkg-resources==0.0.0
 prompt-toolkit==2.0.9
 psutil==5.6.3
 ptyprocess==0.6.0
@@ -31,3 +28,5 @@ traitlets==4.3.2
 wcwidth==0.1.7
 xcffib==0.8.1
 xdg==4.0.1
+cairocffi==1.0.2
+dbus-python==1.2.8

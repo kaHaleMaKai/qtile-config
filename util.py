@@ -1,6 +1,10 @@
 # import re
 # import subprocess
+import os
 from libqtile.command import lazy
+
+
+in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
 
 
 def get_resolutions():

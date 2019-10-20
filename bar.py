@@ -50,19 +50,23 @@ def get_bar(screen_idx):
         )
         widgets.append(current_screen)
 
-    prompt = widget.Prompt(
+    prompt_args = settings.copy()
+    prompt_args.update(
         name=f"prompt-{screen_idx}",
         prompt="» ",
         fontsize=11,
         padding=10,
-        **settings
+        foreground=color.MID_BLUE_GRAY,
     )
+    prompt = widget.Prompt(**prompt_args)
     widgets.append(prompt)
-    task_list = widget.TaskList(
+    task_args = settings.copy()
+    task_args.update(
         highlight_method="block",
         border=color.DARK_ORANGE,
-        **settings
+        foreground=color.BRIGHT_GRAY,
     )
+    task_list = widget.TaskList(**task_args)
     widgets.append(task_list)
     if is_primary:
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))

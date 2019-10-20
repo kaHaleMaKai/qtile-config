@@ -20,7 +20,7 @@ groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
 
 matcher = {
     "c": Match(title=[re.compile(".*(Mattermost|WhatsApp).*")]),
-    "e": Match(wm_class=["Evolution"]),
+    "e": Match(wm_class=["Evolution", "Thunderbird"]),
     "f": Match(wm_class=[re.compile("Firefox.*")]),
 }
 for g, match in matcher.items():
@@ -87,6 +87,7 @@ def autostart():
     procs.screensaver()
     procs.xss_lock()
     procs.shiftred()
+    procs.setxkbmap()
 
 
 @hook.subscribe.screen_change

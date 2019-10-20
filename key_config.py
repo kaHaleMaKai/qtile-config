@@ -1,7 +1,6 @@
-import os
 from libqtile.config import EzKey
 from libqtile.command import lazy
-from util import prev_group, next_group, spawncmd, go_to_screen, move_to_screen
+from util import prev_group, next_group, spawncmd, go_to_screen, move_to_screen, in_debug_mode
 
 modifier_keys = {
    "M": "M",
@@ -25,8 +24,8 @@ inverse_modifier_keys = {
 }
 
 default_mod_key = "M"
-if "QTILE_MOD_KEY" in os.environ:
-    mod_abbrev = modifier_keys.get(os.environ["QTILE_MOD_KEY"], default_mod_key)
+if in_debug_mode:
+    mod_abbrev = "A"
 else:
     mod_abbrev = default_mod_key
 mod_key = inverse_modifier_keys[mod_abbrev]
@@ -94,6 +93,10 @@ keys = KeyList({
     "M-C-l":           lazy.layout.grow_right(),
     "M-C-j":           lazy.layout.grow_down(),
     "M-C-k":           lazy.layout.grow_up(),
+    "M-A-h":           lazy.layout.flip_left(),
+    "M-A-j":           lazy.layout.flip_up(),
+    "M-A-k":           lazy.layout.flip_down(),
+    "M-A-l":           lazy.layout.flip_right(),
     "M-z":             lazy.window.toggle_fullscreen(),
     "M-S-z":           lazy.hide_show_bar(),
     "M-n":             lazy.window.toggle_minimize(),

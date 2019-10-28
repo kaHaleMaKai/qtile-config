@@ -1,5 +1,5 @@
-import psutil
 import math
+import psutil
 from libqtile import bar, widget
 from widgets.capslocker import CapsLockIndicator
 import util
@@ -12,10 +12,49 @@ settings = dict(
 )
 
 
+class ArrowGraph(widget.GenPollText):
+
+    defaults = [
+        ("colors", ("005000", "909000", "e00000"), "4-tuple of colors to use for graph"),
+        ("max", 100, "maximum value for graph (greater values will be clipped)"),
+        ("use_diff", False, "if True, then display (current - last) value, else only current"),
+        ("up_first", True, "if True, display up-arrow first, then down-arrow")
+    ]
+
+    def __init__(self, **config):
+        super().__init__(**config)
+        self.add_defaults(ArrowGraph.defaults)
+        self.colors = tuple(color.hex_to_dec(c) for c in self.colors)
+        if self.use_diff:
+            self.up = 0
+            self.down = 0
+            self.poll()
+
+    def span(self, text, color):
+        return f"<span foreground='#{color}'>{text}</span>"
+
+    def poll(self):
+        up, down = super().poll()
+        if self.use_diff:
+            up_value = (up - self.up) / self.update_interval
+            down_value = (down - self.down) / self.update_interval
+            self.up, self.down = up, down
+        else:
+            up_value = up
+            down_value = down
+        up_color = color.gradient(value=up_value, max_value=self.max, colors=self.colors)
+        down_color = color.gradient(value=down_value, max_value=self.max, colors=self.colors)
+        if self.up_first:
+            arrows = self.span("🠩", up_color), self.span("🠫", down_color)
+        else:
+            arrows = self.span("🠫", down_color), self.span("🠩", up_color)
+        return "<tt><big>{}{}</big></tt>".format(*arrows)
+
+
 class DotGraph(widget.GenPollText):
 
     defaults = [
-        ("colors", ("00b800", "40b800", "b0b000", "b80000"), "4-tuple of colors to use for graph"),
+        ("colors", ("00b800", "c0c000", "b80000"), "4-tuple of colors to use for graph"),
         ("max", 100, "maximum value for graph (greater values will be clipped)"),
         ("graph_length", 4, "number of previous plus current values to be displayed")
     ]
@@ -25,31 +64,27 @@ class DotGraph(widget.GenPollText):
     def __init__(self, **config):
         super().__init__(**config)
         self.add_defaults(DotGraph.defaults)
-        print(self.graph_length)
         self.graph_length *= 2
         self.values = (0,) * self.graph_length
-        # self.dot_values = (f"<span foreground='{self.colors[0]}'>\u28c0</span>",) * self.graph_length
-        self.colors = [c if c.startswith("#") else f"#{c}" for c in self.colors]
+        self.colors = tuple(color.hex_to_dec(c) for c in self.colors)
 
     def single_dot(self, prev, cur):
-        return chr(ord("\u2800") + self.previous_dots[prev] + self.current_dots[cur])
+        p = self.normalize(prev)
+        c = self.normalize(cur)
+        return chr(ord("\u2800") + self.previous_dots[p] + self.current_dots[c])
+
+    def normalize(self, value):
+        return max(0, min(3, math.floor(value * len(self.colors) / self.max)))
 
     def as_dots(self, *values):
         dots = "".join(self.single_dot(*values[i:i+2]) for i in range(0, self.graph_length-1, 2))
-        avg = round(sum(values)/len(values))
-        color = self.colors[avg]
-        # return f"<span foreground='{color}'>{dots}</span>"
-        return f"<tt><span foreground='{color}'>{dots}</span></tt>"
+        avg = sum(values)/len(values)
+        c = color.gradient(value=avg, max_value=self.max, colors=self.colors, scaling=1.2)
+        return f"<tt><span foreground='#{c}'>{dots}</span></tt>"
 
     def poll(self):
         polled_value = super().poll()
-        val = max(0, min(3, math.floor(polled_value * 4 / self.max)))
-        self.values = (*self.values[1:], val)
-        # FIXME for performance reasons
-        # self.dot_values = (*self.dot_values[1:], self.to_dot(*self.values[-2:]))
-        # text = "".join(self.dot_values)
-        # text = "".join(self.to_dot(*self.values[i:i+2]) for i in range(0, self.graph_length-1, 2))
-        # return f"<tt>{text}</tt>"
+        self.values = (*self.values[1:], polled_value)
         return self.as_dots(*self.values)
 
 
@@ -59,13 +94,18 @@ def space():
 
 def get_num_procs():
     number = sum(1 for _ in psutil.process_iter())
-    if number < 300:
-        c = color.BRIGHT_GREEN
-    elif number < 400:
-        c = color.BRIGHT_ORANGE
-    else:
-        c = color.BRIGHT_RED
+    c = color.gradient(value=number-250, max_value=200,
+                       colors=(color.hex_to_dec(color.BRIGHT_GREEN),
+                               color.hex_to_dec(color.BRIGHT_ORANGE),
+                               color.hex_to_dec(color.BRIGHT_RED)))
     return f"<span foreground='#{c}'>{number}</span>"
+
+
+def get_net_throughput():
+    net = psutil.net_io_counters(pernic=True)
+    up = net["enp0s25"].bytes_sent + net["wlp3s0"].bytes_sent
+    down = net["enp0s25"].bytes_recv + net["wlp3s0"].bytes_recv
+    return up, down
 
 
 def get_bar(screen_idx):
@@ -105,9 +145,11 @@ def get_bar(screen_idx):
     prompt_args.update(
         name=f"prompt-{screen_idx}",
         prompt="» ",
-        fontsize=11,
+        fontsize=10,
         padding=10,
-        foreground=color.MID_BLUE_GRAY,
+        cursor_color=color.MID_ORANGE,
+        cursorblink=0.8,
+        foreground=color.MID_ORANGE,
     )
     prompt = widget.Prompt(**prompt_args)
     widgets.append(prompt)
@@ -139,6 +181,10 @@ def get_bar(screen_idx):
 
     cpu_graph = DotGraph(func=psutil.cpu_percent, max=100, update_interval=1, **settings)
     widgets.append(cpu_graph)
+
+    net_graph = ArrowGraph(func=get_net_throughput, max=(1 << 20), update_interval=1,
+                           use_diff=True, up_first=False, **settings)
+    widgets.append(net_graph)
 
     num_procs = widget.GenPollText(func=get_num_procs, update_interval=2)
     widgets.append(num_procs)

@@ -1,14 +1,14 @@
 _rules = {
     "wmclass": [
-        'confirm',
-        'dialog',
-        'download',
-        'error',
-        'file_progress',
-        'notification',
-        'splash',
-        'toolbar',
-        'ssh-askpass',  # ssh-askpass
+        "confirm",
+        "dialog",
+        "download",
+        "error",
+        "file_progress",
+        "notification",
+        "splash",
+        "toolbar",
+        "ssh-askpass",  # ssh-askpass
         "Arandr",
         "Gpick",
         "Kruler",
@@ -23,9 +23,10 @@ _rules = {
         "Shutter",
         "xtightvncviewer",
     ],
-    'wname':   [
-        'pinentry',
-        'Event Tester',
+    "wname":   [
+        "pinentry",
+        "Event Tester",
+        "Export grid rows"
     ],
     "role":  [
         "AlarmWindow",

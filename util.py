@@ -81,7 +81,8 @@ def prev_group():
 @lazy.function
 def spawncmd(qtile):
     screen = qtile.current_screen.index
-    return qtile.cmd_spawncmd(widget=f"prompt-{screen}")
+    command = "zsh -c '%s'"
+    return qtile.cmd_spawncmd(widget=f"prompt-{screen}", command=command)
 
 
 def move_to_screen(dest_screen):

@@ -8,11 +8,12 @@ from typing import List  # noqa: F401
 # custom imports – parts of config
 
 import procs
+import color
 from floating_rules import get_floating_rules
 from key_config import keys, mod_key
 from opacity import add_opacity  # NOQA
 from bar import get_bar
-from util import num_screens, go_to_group
+import util
 
 
 group_dict = {name: Group(name) for name in "123456789abcdef"}
@@ -28,21 +29,24 @@ for g, match in matcher.items():
 
 for group in groups:
     keys.add_keys({
-        f"M-{group.name}": go_to_group(group),
+        f"M-{group.name}": util.go_to_group(group),
         f"M-S-{group.name}": lazy.window.togroup(group.name),
     })
 
+layout_settings = {}
+layout_settings["border_width"] = 0
+
 layouts = [
-    layout.Bsp(border_width=0),
-    layout.MonadTall(border_width=0),
-    layout.MonadWide(border_width=0),
-    layout.Columns(border_width=0, insert_position=1),
-    layout.Matrix(border_width=0, insert_position=1),
-    layout.RatioTile(border_width=0),
-    layout.Tile(border_width=0),
-    layout.VerticalTile(border_width=0),
-    layout.Zoomy(columnwidth=450),
-    layout.TreeTab(border_width=0),
+    layout.Bsp(border_focus=color.BLACK, border_normal=color.BLACK, **layout_settings),
+    layout.MonadTall(**layout_settings),
+    layout.MonadWide(**layout_settings),
+    layout.Columns(insert_position=1, **layout_settings),
+    layout.Matrix(insert_position=1, **layout_settings),
+    layout.RatioTile(**layout_settings),
+    layout.Tile(**layout_settings),
+    layout.VerticalTile(**layout_settings),
+    layout.Zoomy(columnwidth=450, **layout_settings),
+    layout.TreeTab(**layout_settings),
 ]
 
 widget_defaults = dict(
@@ -52,7 +56,7 @@ widget_defaults = dict(
 )
 extension_defaults = widget_defaults.copy()
 
-screens = [Screen(top=get_bar(idx)) for idx in range(num_screens)]
+screens = [Screen(top=get_bar(idx)) for idx in range(util.num_screens)]
 
 # Drag floating layouts.
 mouse = [
@@ -94,3 +98,14 @@ def autostart():
 def screen_change(qtile, event):
     procs.feh()
     qtile.cmd_restart()
+
+
+@hook.subscribe.client_new
+def minimize_window(window):
+    cls = window.window.get_wm_class()
+    for entry in cls:
+        if entry == "heidisql.exe":
+            window.togroup("d")
+            name = window.window.get_name()
+            if name in (None, ""):
+                window.cmd_toggle_minimize()

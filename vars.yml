@@ -1,0 +1,41 @@
+---
+dunstrc:
+  font: Ubuntu
+  icon_path: /usr/share/icons/HighContrast/16x16
+  urgency:
+    low:
+      bg: "#1b1b1b"
+      fg: "#585858"
+      frame: "#242424"
+      timeout: 5
+    normal:
+      bg: "#282828"
+      fg: "#808080"
+      frame: "#303030"
+      timeout: 30
+    critical:
+      bg: "#800000"
+      frame: "#980000"
+      fg: "#ff0000"
+      timeout:  0
+
+compton.conf:
+  menu_opacity: 0.9
+  shadow: true
+  shadow_radius: 10
+  shadow_offset: -5
+  shadow_opacity: 0.3
+  blur_kernel: 11x11gaussian
+  fading: true
+  fade_in_step: 0.12
+  backend: xrender
+  shadow_excludes:
+    - name: Notification
+    - class: Conkey
+    - class: Notify-osd
+      op: ?=
+    - class: Cairo-clock
+    - class: Dunst
+
+terminalrc:
+  bg: "#0d0d00"

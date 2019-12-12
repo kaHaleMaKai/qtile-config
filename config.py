@@ -29,7 +29,6 @@ print("putting config into global namespace")
 for key in dir(config):
     if key in _ignored_module_keys:
         continue
-    print("  * ", key)
     globals()[key] = getattr(config, key)
 
 print("initialization done")

@@ -1,6 +1,7 @@
 from libqtile.config import EzKey
 from libqtile.command import lazy
-from util import prev_group, next_group, spawncmd, go_to_screen, move_to_screen, in_debug_mode
+from util import (prev_group, next_group, spawncmd, go_to_screen, move_to_screen, in_debug_mode,
+                  restart_qtile)
 
 modifier_keys = {
    "M": "M",
@@ -106,7 +107,7 @@ keys = KeyList({
     "M-C-<space>":     lazy.layout.rotate(),
     "M-S-<Return>":    lazy.layout.toggle_split(),
     "M-S-<period>":    lazy.window.kill(),
-    "M-S-r":           lazy.restart(),
+    "M-S-r":           lazy.function(restart_qtile),
     "M-S-q":           lazy.shutdown(),
     "M-r":             spawncmd,
     "M-<Return>":      "xfce4-terminal -e zsh",
@@ -125,7 +126,7 @@ keys = KeyList({
     "M-<udiaeresis>":  "rofimoji",
     "M-S-u":           "toggle-unclutter",
     "M-S-s":           "deepin-screenshot",
-    "M-C-o":           "cinnamon-screensaver-command --lock",
+    "M-C-p":           "cinnamon-screensaver-command --lock",
     "M-<F1>":          "configure-screens small",
     "M-<F2>":          "configure-screens dual-external",
     "M-<F3>":          "configure-screens large",

@@ -83,21 +83,24 @@ wmname = "LG3D"
 def autostart():
     print("auto-starting commands")
     procs.feh()
-    procs.setxkbmap()
     procs.unclutter()
-    procs.xcompmgr()
     procs.network_manager()
     procs.xfce4_power_manager()
-    procs.screensaver()
-    procs.xss_lock()
-    procs.shiftred()
-    procs.setxkbmap()
+    if not util.in_debug_mode:
+        procs.setxkbmap()
+        procs.screensaver()
+        procs.xss_lock()
+        procs.shiftred()
+        procs.systemctl("dunst")
+        procs.systemctl("compton")
+        util.render_dunstrc()
+        util.render_compton_conf()
+        util.render_terminalrc()
 
 
 @hook.subscribe.screen_change
 def screen_change(qtile, event):
-    procs.feh()
-    qtile.cmd_restart()
+    util.restart_qtile(qtile)
 
 
 @hook.subscribe.client_new
@@ -109,3 +112,10 @@ def minimize_window(window):
             name = window.window.get_name()
             if name in (None, ""):
                 window.cmd_toggle_minimize()
+                return
+            transient = window.window.get_wm_transient_for()
+            print(transient)
+            if transient:
+                res = util.res[-1]
+                window.floating = True
+                window.tweak_float(w=500, h=300, x=res["width"]/3, y=res["height"]/3)

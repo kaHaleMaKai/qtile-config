@@ -1,4 +1,7 @@
+import os
 import math
+import pickle
+import functools
 
 
 BLACK            = "000000"
@@ -26,6 +29,12 @@ def normalize_hex_color(color):
     return color
 
 
+def add_hashtag(color):
+    if color[0] == "#":
+        return color
+    return f"#{color}"
+
+
 def hex_to_dec(color):
     c = normalize_hex_color(color)
     return tuple(int(c[i:i+2], 16) for i in range(0, 6, 2))
@@ -35,15 +44,31 @@ def dec_to_hex(triplet):
     return "%02.x%02.x%02.x" % triplet
 
 
+def to_hex(fn):
+
+    @functools.wraps(fn)
+    def inner(*args, **kwargs):
+        return dec_to_hex(fn(*args, **kwargs))
+
+    return inner
+
+
+@to_hex
+def complement(color):
+    triplet = hex_to_dec(color)
+    return tuple(255 - c for c in triplet)
+
+
 def lin(start, stop, scaling):
     return start + round((stop - start)*scaling)
 
 
+@to_hex
 def gradient(value, max_value, colors, scaling=None):
     if value < 0:
-        return dec_to_hex(colors[0])
+        return colors[0]
     elif value >= max_value:
-        return dec_to_hex(colors[-1])
+        return colors[-1]
     num_intervals = len(colors) - 1
     scaled_value = value * num_intervals / max_value
     idx = math.floor(scaled_value)
@@ -51,4 +76,21 @@ def gradient(value, max_value, colors, scaling=None):
     scaling_factor = scaled_value - idx
     if scaling:
         scaling_factor = min(1, scaling_factor * scaling)
-    return dec_to_hex(tuple(lin(start[i], stop[i], scaling_factor) for i in range(3)))
+    return tuple(lin(start[i], stop[i], scaling_factor) for i in range(3))
+
+
+@functools.lru_cache(maxsize=1)
+def get_ascii_colors():
+    CUR_DIR = os.path.dirname(os.path.abspath(__file__))
+    with open(os.path.join(CUR_DIR, "colors.dat"), "rb") as f:
+        return pickle.load(f)
+
+
+def distance(color, other):
+    return sum((color[i] - other[i])**2 for i in range(len(color))) ** 0.5
+
+
+def to_ascii_color(color):
+    dec = hex_to_dec(color)
+    ascii = get_ascii_colors()
+    return min((distance(c, dec), i) for i, c in enumerate(ascii))[1]

@@ -1,0 +1,49 @@
+[Configuration]
+MiscAlwaysShowTabs=FALSE
+MiscBell=FALSE
+MiscBordersDefault=FALSE
+MiscCursorBlinks=FALSE
+MiscCursorShape=TERMINAL_CURSOR_SHAPE_BLOCK
+MiscDefaultGeometry=80x24
+MiscInheritGeometry=FALSE
+MiscMenubarDefault=FALSE
+MiscMouseAutohide=FALSE
+MiscToolbarDefault=FALSE
+MiscConfirmClose=FALSE
+MiscCycleTabs=TRUE
+MiscTabCloseButtons=TRUE
+MiscTabCloseMiddleClick=FALSE
+MiscTabPosition=GTK_POS_TOP
+MiscHighlightUrls=TRUE
+MiscScrollAlternateScreen=TRUE
+TitleInitial=terminal
+TabActivityTimeout=0
+WordChars=-A-Za-z0-9,./?%&#:_=+@~[]{}()
+ShortcutsNoMenukey=TRUE
+ShortcutsNoMnemonics=TRUE
+ScrollingLines=50000
+ScrollingBar=TERMINAL_SCROLLBAR_NONE
+BackgroundDarkness=1.000000
+ColorPalette={{ wal.colors|join(';') }}
+TitleMode=TERMINAL_TITLE_REPLACE
+ColorBackground={{ bg|default(wal.bg) }}
+ColorCursor={{ wal.color }}
+ColorForeground={{ wal.fg }}
+FontName=hack 8.5
+MiscBellUrgent=FALSE
+MiscMouseWheelZoom=TRUE
+MiscMiddleClickOpensUri=FALSE
+MiscCopyOnSelect=FALSE
+MiscDefaultWorkingDir=
+MiscRewrapOnResize=TRUE
+MiscUseShiftArrowsToScroll=TRUE
+MiscSlimTabs=TRUE
+ShortcutsNoHelpkey=TRUE
+MiscShowRelaunchDialog=TRUE
+MiscNewTabAdjacent=FALSE
+MiscSearchDialogOpacity=100
+MiscShowUnsafePasteDialog=FALSE
+
+#j2: vim: ft=dosini.j2
+# vim: ft=dosini
+

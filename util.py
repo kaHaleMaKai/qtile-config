@@ -1,15 +1,21 @@
-# import re
-# import subprocess
 import os
 import yaml
 import pywal
 import procs
+from typing import Tuple
+from libqtile.core.manager import Qtile
+from libqtile.window import Window
+from libqtile.group import _Group as Group
 from libqtile.command import lazy
+from libqtile.lazy import LazyCall
+from libqtile.layout.base import Layout
+from libqtile.layout.tree import TreeTab
 import templates
 from color import complement, add_hashtag
 
 
 in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
+GROUPS = tuple(ch for ch in "123456789abcdef")
 
 
 def get_resolutions():
@@ -47,47 +53,71 @@ def go_to_group(group):
     return f
 
 
-def next_group():
+def get_group_and_screen_idx(qtile: Qtile, offset: int) -> Tuple[Group, int]:
+    group = qtile.current_group.name
+    idx = GROUPS.index(group)
+    next_group = GROUPS[(idx+offset) % len(GROUPS)]
+    screen = 0 if num_screens == 1 or next_group < "a" else 1
+    return qtile.groups_map[next_group], screen
+
+
+def next_group() -> LazyCall:
     if num_screens == 1:
         return lazy.screen.next_group()
 
-    groups = [ch for ch in "123456789abcdef"]
-
     @lazy.function
-    def f(qtile):
-        group = qtile.current_group.name
-        idx = groups.index(group)
-        next_group = groups[(idx+1) % len(groups)]
-        screen = 0 if next_group < "a" else 1
-        qtile.cmd_to_screen(screen)
-        qtile.groups_map[next_group].cmd_toscreen()
+    def f(qtile: Qtile):
+        g, s = get_group_and_screen_idx(qtile, +1)
+        qtile.cmd_to_screen(s)
+        g.cmd_toscreen()
 
     return f
 
 
-def prev_group():
+def prev_group() -> LazyCall:
     if num_screens == 1:
         return lazy.screen.prev_group()
 
-    groups = [ch for ch in "123456789abcdef"]
-
     @lazy.function
     def f(qtile):
-        group = qtile.current_group.name
-        idx = groups.index(group)
-        prev_group = groups[(idx-1) % len(groups)]
-        screen = 0 if prev_group < "a" else 1
-        qtile.cmd_to_screen(screen)
-        qtile.groups_map[prev_group].cmd_toscreen()
+        g, s = get_group_and_screen_idx(qtile, -1)
+        qtile.cmd_to_screen(s)
+        g.cmd_toscreen()
+
+    return f
+
+
+def move_window_to_offset_group(offset: int) -> LazyCall:
+
+    if not offset:
+        raise ValueError("offset must not be 0")
+
+    @lazy.function
+    def f(qtile: Qtile):
+        current = qtile.current_group.name
+        next , _ = get_group_and_screen_idx(qtile, offset)
+        if (offset < 0 and next.name < current) or (offset > 0 and next.name > current):
+            qtile.current_window.togroup(next.name)
 
     return f
 
 
 @lazy.function
-def spawncmd(qtile):
+def spawncmd(qtile: Qtile):
     screen = qtile.current_screen.index
     command = "zsh -c '%s'"
     return qtile.cmd_spawncmd(widget=f"prompt-{screen}", command=command)
+
+
+@lazy.function
+def grow_right_or_shrink_left(qtile: Qtile):
+    width = qtile.current_screen.width
+    win: Window = qtile.current_window
+    right_margin = win.y + win.width
+    if right_margin < width:
+        qtile.current_layout.grow_right()
+        return
+    # for w in qtile.current_group.windows:
 
 
 def move_to_screen(dest_screen):
@@ -169,7 +199,7 @@ def render_terminalrc(**overrides):
                          overrides=get_default_vars(**colors))
 
 
-def restart_qtile(qtile):
+def restart_qtile(qtile: Qtile):
     procs.feh()
     qtile.cmd_restart()
     render_dunstrc()

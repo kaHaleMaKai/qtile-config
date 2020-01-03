@@ -11,12 +11,12 @@ import procs
 import color
 from floating_rules import get_floating_rules
 from key_config import keys, mod_key
-from opacity import add_opacity  # NOQA
+from opacity import add_opacity, opacity_class_map  # NOQA
 from bar import get_bar
 import util
 
 
-group_dict = {name: Group(name) for name in "123456789abcdef"}
+group_dict = {name: Group(name) for name in util.GROUPS}
 groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
 
 matcher = {
@@ -36,17 +36,43 @@ for group in groups:
 layout_settings = {}
 layout_settings["border_width"] = 0
 
+treetab_bg = "101000"
+treetab_settings = {
+    "fontsize": 10,
+    "previous_on_rm": True,
+    "active_fg": color.BRIGHT_ORANGE,
+    "active_bg": treetab_bg,
+    "bg_color": treetab_bg,
+    "inactive_bg": treetab_bg,
+    "inactive_fg": color.DARK_ORANGE,
+    "panel_width": 100,
+    "section_fg": color.DARK_GRAY,
+    "sections": ["default"],
+    "padding_left": 0,
+    "padding_x": 0,
+    "padding_y": 0,
+    "section_padding": 0,
+    "margin_left": 0,
+    "margin_y": 0,
+    "section_top": 0,
+    "section_bottom": 0,
+    "section_padding": 0,
+    "section_left": 0,
+    "opacity": opacity_class_map["xfce4-terminal"],
+}
+
 layouts = [
     layout.Bsp(border_focus=color.BLACK, border_normal=color.BLACK, **layout_settings),
-    layout.MonadTall(**layout_settings),
-    layout.MonadWide(**layout_settings),
-    layout.Columns(insert_position=1, **layout_settings),
-    layout.Matrix(insert_position=1, **layout_settings),
+    # layout.MonadTall(**layout_settings),
+    # layout.MonadWide(**layout_settings),
+    # layout.Columns(insert_position=1, **layout_settings),
+    # layout.Matrix(insert_position=1, **layout_settings),
     layout.RatioTile(**layout_settings),
     layout.Tile(**layout_settings),
     layout.VerticalTile(**layout_settings),
     layout.Zoomy(columnwidth=450, **layout_settings),
-    layout.TreeTab(**layout_settings),
+    layout.Max(**layout_settings),
+    layout.TreeTab(**layout_settings, **treetab_settings),
 ]
 
 widget_defaults = dict(

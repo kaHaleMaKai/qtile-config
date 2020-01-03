@@ -1,7 +1,8 @@
 from libqtile.config import EzKey
 from libqtile.command import lazy
+from libqtile.lazy import LazyCall
 from util import (prev_group, next_group, spawncmd, go_to_screen, move_to_screen, in_debug_mode,
-                  restart_qtile)
+                  restart_qtile, move_window_to_offset_group)
 
 modifier_keys = {
    "M": "M",
@@ -59,6 +60,22 @@ class KeyList(list):
     def as_command(args):
         if isinstance(args, (list, tuple)):
             cmds = args
+        elif isinstance(args, dict):
+            cmds = []
+            for ks, v in args.items():
+                if isinstance(ks, tuple):
+                    subks = ks
+                elif isinstance(ks, str):
+                    subks = [ks]
+                else:
+                    raise TypeError(
+                        "wrong type for key. expected: (str, list, tuple). got: %s" %
+                        type(ks))
+                for k in subks:
+                    cmd = v()
+                    if k:
+                        cmd.when(layout=k)
+                    cmds.append(cmd)
         else:
             cmds = [args]
 
@@ -66,6 +83,8 @@ class KeyList(list):
         for cmd in cmds:
             if isinstance(cmd, str):
                 action = lazy.spawn(cmd)
+            elif not isinstance(cmd, LazyCall):
+                action = cmd()
             else:
                 action = cmd
             li.append(action)
@@ -73,42 +92,50 @@ class KeyList(list):
 
 
 keys = KeyList({
-    "M-<Left>":        prev_group(),
-    "M-<Right>":       next_group(),
+    "M-<Left>":        prev_group,
+    "M-<Right>":       next_group,
+    "M-i":             move_window_to_offset_group(-1),
+    "M-o":             move_window_to_offset_group(+1),
     "M-C-<Left>":      go_to_screen(0),
     "M-C-<Right>":     go_to_screen(1),
     "M-A-<Left>":      move_to_screen(0),
     "M-A-<Right>":     move_to_screen(1),
-    "M-p":             lazy.screen.toggle_group(),
-    "M-S-p":           lazy.group.focus_back(),
-    "M-h":             lazy.layout.left(),
-    "M-l":             lazy.layout.right(),
-    "M-j":             lazy.layout.down(),
-    "M-k":             lazy.layout.up(),
-    "M-u":             lazy.next_urgent(),
-    "M-S-h":           lazy.layout.shuffle_left(),
-    "M-S-l":           lazy.layout.shuffle_right(),
-    "M-S-j":           lazy.layout.shuffle_down(),
-    "M-S-k":           lazy.layout.shuffle_up(),
-    "M-C-h":           lazy.layout.grow_left(),
-    "M-C-l":           lazy.layout.grow_right(),
-    "M-C-j":           lazy.layout.grow_down(),
-    "M-C-k":           lazy.layout.grow_up(),
-    "M-A-h":           lazy.layout.flip_left(),
-    "M-A-j":           lazy.layout.flip_up(),
-    "M-A-k":           lazy.layout.flip_down(),
-    "M-A-l":           lazy.layout.flip_right(),
-    "M-z":             lazy.window.toggle_fullscreen(),
-    "M-S-z":           lazy.hide_show_bar(),
-    "M-n":             lazy.window.toggle_minimize(),
-    "M-t":             lazy.window.toggle_floating(),
-    "M-<space>":       lazy.next_layout(),
-    "M-S-<space>":     lazy.prev_layout(),
-    "M-C-<space>":     lazy.layout.rotate(),
-    "M-S-<Return>":    lazy.layout.toggle_split(),
-    "M-S-<period>":    lazy.window.kill(),
+    "M-p":             lazy.screen.toggle_group,
+    "M-S-p":           lazy.group.focus_back,
+    "M-h":             lazy.layout.left,
+    "M-l":             lazy.layout.right,
+    "M-j":             lazy.layout.down,
+    "M-k":             lazy.layout.up,
+    "M-u":             lazy.next_urgent,
+    "M-S-h":           lazy.layout.shuffle_left,
+    "M-S-l":           lazy.layout.shuffle_right,
+    "M-S-j":           lazy.layout.shuffle_down,
+    "M-S-k":           lazy.layout.shuffle_up,
+    "M-C-h":           {
+        ( "bsp", "column"): lazy.layout.grow_left,
+        "treetab": lazy.layout.decrease_ratio
+    },
+    "M-C-l":           {
+        ("bsp", "column"): lazy.layout.grow_right,
+        "treetab": lazy.layout.increase_ratio
+    },
+    "M-C-j":           lazy.layout.grow_down,
+    "M-C-k":           lazy.layout.grow_up,
+    "M-A-h":           lazy.layout.flip_left,
+    "M-A-j":           lazy.layout.flip_up,
+    "M-A-k":           lazy.layout.flip_down,
+    "M-A-l":           lazy.layout.flip_right,
+    "M-z":             lazy.window.toggle_fullscreen,
+    "M-S-z":           lazy.hide_show_bar,
+    "M-n":             lazy.window.toggle_minimize,
+    "M-t":             lazy.window.toggle_floating,
+    "M-<space>":       lazy.next_layout,
+    "M-S-<space>":     lazy.prev_layout,
+    "M-C-<space>":     lazy.layout.rotate,
+    "M-S-<Return>":    lazy.layout.toggle_split,
+    "M-S-<period>":    lazy.window.kill,
     "M-S-r":           lazy.function(restart_qtile),
-    "M-S-q":           lazy.shutdown(),
+    "M-S-q":           lazy.shutdown,
     "M-r":             spawncmd,
     "M-<Return>":      "xfce4-terminal -e zsh",
     "M-S-<Left>":      "shiftred r-",

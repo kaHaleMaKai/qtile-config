@@ -22,11 +22,12 @@ _rules = {
         "Gimp",
         "Shutter",
         "xtightvncviewer",
+        "kazam"
     ],
     "wname":   [
         "pinentry",
         "Event Tester",
-        "Export grid rows"
+        "TbSync account manager",
     ],
     "role":  [
         "AlarmWindow",

@@ -103,8 +103,10 @@ def get_num_procs():
 
 def get_net_throughput():
     net = psutil.net_io_counters(pernic=True)
-    up = net["enp0s25"].bytes_sent + net["wlp3s0"].bytes_sent
-    down = net["enp0s25"].bytes_recv + net["wlp3s0"].bytes_recv
+    ethernet_name = "enp0s31f6"
+    wifi_name = "wlp4s0"
+    up = net[ethernet_name].bytes_sent + net[wifi_name].bytes_sent
+    down = net[ethernet_name].bytes_recv + net[wifi_name].bytes_recv
     return up, down
 
 
@@ -145,7 +147,7 @@ def get_bar(screen_idx):
     prompt_args.update(
         name=f"prompt-{screen_idx}",
         prompt="» ",
-        fontsize=10,
+        fontsize=12,
         padding=10,
         cursor_color=color.MID_ORANGE,
         cursorblink=0.8,
@@ -189,13 +191,13 @@ def get_bar(screen_idx):
     num_procs = widget.GenPollText(func=get_num_procs, update_interval=2)
     widgets.append(num_procs)
 
-    clock = widget.Clock(format='%Y-%m-%d %H:%M', **settings)
+    clock = widget.Clock(format=' %Y-%m-%d %H:%M', **settings)
     widgets.append(clock)
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
     widgets.append(layout)
 
     return bar.Bar(
         widgets=widgets,
-        size=23,
+        size=26,
         opacity=0.9
     )

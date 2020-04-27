@@ -88,9 +88,9 @@
     ### Text ###
 
 {% if defaults.num_screens == 1 %}
-    font = {{ font }} 8
+    font = {{ font }} {{ fontsize.small}}
 {% else %}
-    font = {{ font }} 10
+    font = {{ font }} {{ fontsize.large}}
 {% endif %}
 
     # The spacing between lines.  If the height is smaller than the

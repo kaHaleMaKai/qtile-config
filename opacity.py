@@ -2,14 +2,15 @@ from libqtile import hook
 
 
 opacity_class_map = {
-    "xfce4-terminal":        0.92,
-    "evolution":             0.97,
-    "gajim":                 0.97,
-    "jetbrains-idea-ce":     0.97,
-    "jetbrains-pycharm-ce":  0.97,
-    "dbeaver":               0.97,
-    "spotify":               0.97,
-    "code":                  0.97,
+    "xfce4-terminal":            0.92,
+    "thunderbird":               0.97,
+    "gajim":                     0.97,
+    "jetbrains-idea-ce":         0.94,
+    "jetbrains-pycharm-ce":      0.97,
+    "dbeaver":                   0.97,
+    "spotify":                   0.97,
+    "code":                      0.97,
+    "microsoft teams - preview": 0.97,
 }
 
 

@@ -1,6 +1,9 @@
 ---
 dunstrc:
   font: Ubuntu
+  fontsize:
+    small: 10
+    large: 12
   icon_path: /usr/share/icons/HighContrast/16x16
   urgency:
     low:

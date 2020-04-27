@@ -39,6 +39,7 @@ class CapsLockIndicator(base.ThreadPoolText):
         self.lock_msg = "| A⇬ |"
         self.is_locked = None
         if self.send_notifications:
+            print("hello")
             self.notification = notify2.Notification("Caps_Lock on", self.lock_msg)
             self.notification.timeout = -1
             self.notification.urgency = notify2.URGENCY_CRITICAL

@@ -2,7 +2,8 @@ from libqtile.config import EzKey
 from libqtile.command import lazy
 from libqtile.lazy import LazyCall
 from util import (prev_group, next_group, spawncmd, go_to_screen, move_to_screen, in_debug_mode,
-                  restart_qtile, move_window_to_offset_group)
+                  restart_qtile, move_window_to_offset_group, start_distraction_free_mode,
+                  stop_distraction_free_mode, update_path, is_laptop_connected)
 
 modifier_keys = {
    "M": "M",
@@ -49,6 +50,9 @@ class KeyList(list):
         entry = EzKey(self.parse_key(k), *self.as_command(vs))
         self.append(entry)
 
+    def __setitem__(self, k, vs):
+        self.add_key(k, vs)
+
     @staticmethod
     def parse_key(key):
         if key.startswith("M-"):
@@ -94,12 +98,8 @@ class KeyList(list):
 keys = KeyList({
     "M-<Left>":        prev_group,
     "M-<Right>":       next_group,
-    "M-i":             move_window_to_offset_group(-1),
-    "M-o":             move_window_to_offset_group(+1),
-    "M-C-<Left>":      go_to_screen(0),
-    "M-C-<Right>":     go_to_screen(1),
-    "M-A-<Left>":      move_to_screen(0),
-    "M-A-<Right>":     move_to_screen(1),
+    "M-y":             move_window_to_offset_group(-1),
+    "M-x":             move_window_to_offset_group(+1),
     "M-p":             lazy.screen.toggle_group,
     "M-S-p":           lazy.group.focus_back,
     "M-h":             lazy.layout.left,
@@ -137,27 +137,54 @@ keys = KeyList({
     "M-S-r":           lazy.function(restart_qtile),
     "M-S-q":           lazy.shutdown,
     "M-r":             spawncmd,
+    "M-S-<F12>":       start_distraction_free_mode,
+    "M-<F12>":         stop_distraction_free_mode,
     "M-<Return>":      "xfce4-terminal -e zsh",
     "M-S-<Left>":      "shiftred r-",
     "M-S-<Right>":     "shiftred r+",
     "M-S-<Down>":      "shiftred b-",
     "M-S-<Up>":        "shiftred b+",
-    "M-S-0":           "shiftred 4200:.8",
-    "M-0":             "shiftred 5100:1",
+    "M-S-0":           "shiftred 5100:.8",
+    "M-0":             "shiftred 5800:1",
     "M-C-0":           "shiftred 6500:1",
     "M-<Prior>":       "transset --actual --dec 0.025",
     "M-<Next>":        "transset --actual --inc 0.025",
     "M-<plus>":        "rofi -i -show window",
-    "M-<numbersign>":  "rofi -i -show combi",
+    "M-<numbersign>":  "rofi -i -show run",
+    "M-S-<numbersign>": "rofi-pkill-menu",
+    "M-A-f":           "ff-history",
+    "M-<F9>":          "rofi-menu",
     "M-<F10>":         "rofi-pass",
+    "M-<F11>":         "rofi-pkill-menu",
     "M-<udiaeresis>":  "rofimoji",
     "M-S-u":           "toggle-unclutter",
-    "M-S-s":           "deepin-screenshot",
+    "M-s":             "flameshot gui",
+    "M-S-s":           "flameshot launcher",
     "M-C-p":           "cinnamon-screensaver-command --lock",
     "M-<F1>":          "configure-screens small",
     "M-<F2>":          "configure-screens dual-external",
     "M-<F3>":          "configure-screens large",
-    "<XF86AudioMute>": "configure-volume --toggle",
-    "<XF86AudioLowerVolume>": "configure-volume --down",
-    "<XF86AudioRaiseVolume>": "configure-volume --up",
+    "M-<F4>":          "configure-screens 24inch+dual",
+    "M-<F5>":          "configure-screens 24inch",
+    "<XF86AudioMute>":          "configure-volume --toggle",
+    "<XF86AudioLowerVolume>":   "configure-volume --down",
+    "<XF86AudioRaiseVolume>":   "configure-volume --up",
+    "<XF86AudioMicMute>":       "configure-volume --toggle-mic",
+    "S-<XF86AudioMute>":        "configure-volume --toggle-mic",
+    "S-<XF86AudioLowerVolume>": "configure-volume --down-mic",
+    "S-<XF86AudioRaiseVolume>": "configure-volume --up-mic",
+    "C-<XF86AudioMute>":        "configure-volume --mute-all",
+    "M-w": update_path,
 })
+
+if is_laptop_connected():
+    first_key = "Up"
+    second_key = "Down"
+else:
+    first_key = "Left"
+    second_key = "Right"
+
+keys[f"M-C-<{first_key}>"] = go_to_screen(0)
+keys[f"M-C-<{second_key}>"] = go_to_screen(1)
+keys[f"M-A-<{first_key}>"] = move_to_screen(0)
+keys[f"M-A-<{second_key}>"] = move_to_screen(1)

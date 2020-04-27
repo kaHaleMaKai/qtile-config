@@ -6,7 +6,7 @@ class Proc:
 
     timeout = 2
 
-    def __init__(self, *args, name=None, default_args=None, default_arg=None, stop=None, bg=False):
+    def __init__(self, *args, name=None, default_args=None, default_arg=None, stop=None, bg=False, shell=False):
         if default_arg and default_args:
             raise ValueError("specify either of 'default_arg' or 'default_args'")
         if default_arg:
@@ -19,6 +19,7 @@ class Proc:
         self.name = name if name else args[0]
         self.args = args
         self.bg = bg
+        self.shell = shell
 
     def derive(self, *args, name=None, stop=None, default_arg=None, default_args=None):
         if not default_arg and not default_args:
@@ -59,7 +60,7 @@ class Proc:
         timeout = timeout if timeout is not None else self.timeout
         print(f"running {proc_args}")
         try:
-            p = subprocess.run(proc_args, timeout=timeout, text=True)
+            p = subprocess.run(proc_args, timeout=timeout, text=True, shell=self.shell)
         except subprocess.TimeoutExpired as e:
             print(f"timeed out while waiting for command {proc_args}: ", e.message)
             return False
@@ -82,8 +83,9 @@ class Proc:
 
 
 feh = Proc("feh", "--bg-fill", default_arg=os.path.expanduser("~/.wallpaper"))
-setxkbmap = Proc("setxkbmap", default_args=("de", "deadacute"))
+setxkbmap = Proc("setxkbmap", default_args=("de", "deadacute"), shell=True)
 unclutter = Proc("unclutter", "-root", "-idle", default_arg="3", bg=True)
+polkit_agent = Proc("/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1", bg=True)
 xcompmgr = Proc("xcompmgr", bg=True)
 compton = Proc("compton", bg=True)
 xfce4_power_manager = Proc("xfce4-power-manager", bg=True)
@@ -101,4 +103,7 @@ rofi_pass = Proc("rofi-pass")
 terminal = Proc("xfce4-terminal", default_args=["-e", "zsh"])
 rofimoji = Proc("rofimoji")
 volume = Proc("configure-volume")
-systemctl = Proc("systemctl", "--user", "start")
+systemctl = Proc("systemctl", "--user", "restart")
+pause_dunst = Proc("killall", "-SIGUSR1", "dunst")
+resume_dunst = Proc("killall", "-SIGUSR2", "dunst")
+dunstify = Proc("dunstify")

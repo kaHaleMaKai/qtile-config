@@ -20,6 +20,7 @@ BRIGHT_BLUE_GRAY = "42a2e4"
 BRIGHT_GRAY      = "d0d0d0"
 BRIGHT_RED       = "b00000"
 DARK_GRAY        = "383838"
+DARK_RED         = "800000"
 BRIGHT_GREEN     = "00b800"
 
 

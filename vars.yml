@@ -1,9 +1,9 @@
 ---
 dunstrc:
-  font: Ubuntu
+  font: Hack
   fontsize:
-    small: 10
-    large: 12
+    small: 9
+    large: 11
   icon_path: /usr/share/icons/HighContrast/16x16
   urgency:
     low:

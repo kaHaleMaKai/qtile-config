@@ -22,7 +22,8 @@ _rules = {
         "Gimp",
         "Shutter",
         "xtightvncviewer",
-        "kazam"
+        "kazam",
+        "Msgcompose",
     ],
     "wname":   [
         "pinentry",

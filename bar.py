@@ -1,15 +1,69 @@
+import os
 import math
 import psutil
 from libqtile import bar, widget
 from widgets.capslocker import CapsLockIndicator
+from datetime import datetime
 import util
 import color
+import procs
+import re
+from pathlib import Path
+
 
 settings = dict(
     background=None,
     borderwidth=0,
     foreground=color.BRIGHT_GRAY,
 )
+
+
+class Pomodoro(widget.Pomodoro):
+
+    cache_file = str(Path.home() / ".cache" / "qtile.pomodoro-state")
+
+    def __init__(self, **config):
+        if os.path.isfile(self.cache_file):
+            with open(self.cache_file, "r") as f:
+                status = f.read()
+            if status:
+                s, p, e = status.replace("\n", "").split(",")
+                self.status = None if s == "None" else s
+                self.paused_status = None if p == "None" else p
+                self.end_time = datetime.fromisoformat(e)
+                self.time_left = datetime.now() - self.end_time
+        super().__init__(**config)
+        self._write_status()
+
+    def poll(self):
+        val = super().poll()
+        if val.startswith(self.prefix_break):
+            length = self(self.prefix_break)
+            prefix, val = val[:length], val[length:]
+        elif val.startswith(self.prefix_long_break):
+            length = self(self.prefix_long_break)
+            prefix, val = val[:length], val[length:]
+        else:
+            prefix, val = '', val
+
+        if re.match(r"\d+:\d+:\d+", val):
+            minutes = int(val.split(":")[1]) + 1
+            return "%s0:%02d" % (prefix, minutes)
+        else:
+            return prefix + val
+
+    def button_press(self, x, y, button):
+        super().button_press(x, y, button)
+        if ((button == 1 and self.status == self.STATUS_PAUSED) or
+                (button == 3 and self.status == self.STATUS_INACTIVE)):
+            procs.resume_dunst()
+        else:
+            procs.pause_dunst()
+        self._write_status()
+
+    def _write_status(self):
+        with open(self.cache_file, "w") as f:
+            f.write(f"{self.status},{self.paused_status},{self.end_time}")
 
 
 class ArrowGraph(widget.GenPollText):
@@ -191,6 +245,20 @@ def get_bar(screen_idx):
     num_procs = widget.GenPollText(func=get_num_procs, update_interval=2)
     widgets.append(num_procs)
 
+    pomodoro_settings = dict(
+        prefix_inactive='🍅',
+        prefix_paused='pause',
+        prefix_break='b',
+        prefix_long_break='lb',
+        length_long_break=10,
+        length_break=5,
+        update_interval=60,
+        color_active=color.BRIGHT_ORANGE,
+        color_break=color.DARK_ORANGE,
+        color_inactive=color.DARK_RED,
+    )
+    pomodoro = Pomodoro(**pomodoro_settings, **settings)
+    widgets.append(pomodoro)
     clock = widget.Clock(format=' %Y-%m-%d %H:%M', **settings)
     widgets.append(clock)
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)

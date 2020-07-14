@@ -16,7 +16,7 @@ import procs
 import color
 from floating_rules import get_floating_rules
 from keys import keys, mod_key
-from opacity import add_opacity, opacity_class_map  # NOQA
+from opacity import add_opacity, partial_opacities  # NOQA
 from bar import get_bar
 import util
 
@@ -64,7 +64,7 @@ treetab_settings = {
     "section_bottom": 0,
     "section_padding": 0,
     "section_left": 0,
-    "opacity": opacity_class_map["xfce4-terminal"],
+    "opacity": partial_opacities["class"]["xfce4-terminal"],
 }
 
 layouts = [
@@ -117,6 +117,7 @@ def autostart():
     procs.feh()
     procs.unclutter()
     procs.network_manager()
+    procs.bluetooth()
     procs.xfce4_power_manager()
     if not util.in_debug_mode:
         procs.screensaver()
@@ -165,7 +166,9 @@ previous_window_class = None
 def copy_intellij_clipboard(window: Window):
     global previous_window_class
     cls = window.window.get_wm_class()[1].lower()
-    print(f"previous: {previous_window_class}, current: {cls}")
+    if cls is previous_window_class:
+        return
+
     intellij = 'intellij'
     if cls != intellij and previous_window_class != intellij:
         previous_window_class = cls
@@ -182,13 +185,3 @@ def copy_intellij_clipboard(window: Window):
     to_proc = subprocess.run(to_cmd, stdin=from_proc.stdout)
     from_proc.wait()
     previous_window_class = cls
-
-
-# @hook.subscribe.client_killed
-# def reset_layout(window: Window):
-    # try:
-        # group = window.group
-        # if len(group.windows) == 0:
-            # group.cmd_setlayout(layouts[0])
-    # except Exception as e:
-        # return

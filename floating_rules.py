@@ -8,7 +8,7 @@ _rules = {
         "notification",
         "splash",
         "toolbar",
-        "ssh-askpass",  # ssh-askpass
+        "ssh-askpass",
         "Arandr",
         "Gpick",
         "Kruler",

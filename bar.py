@@ -235,11 +235,19 @@ def get_bar(screen_idx):
     caps_lock = CapsLockIndicator(send_notifications=is_primary, **settings)
     widgets.append(caps_lock)
 
-    cpu_graph = DotGraph(func=psutil.cpu_percent, max=100, update_interval=1, **settings)
+
+    def run_htop(qtile):
+        qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
+
+
+    cpu_graph = DotGraph(func=psutil.cpu_percent, max=100, update_interval=1,
+            mouse_callbacks={"Button1": run_htop}, **settings)
     widgets.append(cpu_graph)
 
+
+
     net_graph = ArrowGraph(func=get_net_throughput, max=(1 << 20), update_interval=1,
-                           use_diff=True, up_first=False, **settings)
+            use_diff=True, up_first=False, **settings)
     widgets.append(net_graph)
 
     num_procs = widget.GenPollText(func=get_num_procs, update_interval=2)

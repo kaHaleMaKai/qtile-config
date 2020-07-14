@@ -210,6 +210,13 @@ def render_terminalrc(**overrides):
 
 def restart_qtile(qtile: Qtile):
     procs.feh()
+    for group in qtile.groups:
+        for window in group.windows:
+            try:
+                window.opacity = window._full_opacity
+                print(f"restart name: {window.name}, opacity: {window.opacity}, full: {window._full_opacity}, dimmed: {window._dimmed_opacity}")
+            except AttributeError:
+                pass
     qtile.cmd_restart()
     render_dunstrc()
     render_compton_conf()

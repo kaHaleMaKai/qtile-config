@@ -129,6 +129,9 @@ def autostart():
         util.render_dunstrc()
         util.render_compton_conf()
         util.render_terminalrc()
+        procs.nextcloud_sync()
+        procs.kde_connect()
+        # procs.signal_desktop()
     procs.setxkbmap()
 
 

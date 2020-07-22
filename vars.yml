@@ -31,6 +31,7 @@ compton.conf:
   blur_kernel: 11x11gaussian
   fading: true
   fade_in_step: 0.12
+  alpha_step: 0.01
   backend: xrender
   shadow_excludes:
     - name: Notification

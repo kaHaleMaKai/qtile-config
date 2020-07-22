@@ -2,6 +2,8 @@ import os
 import math
 import psutil
 from libqtile import bar, widget
+from libqtile.widget.pomodoro import _Pomodoro
+from libqtile.widget.generic_poll_text import _GenPollText
 from widgets.capslocker import CapsLockIndicator
 from datetime import datetime
 import util
@@ -18,7 +20,7 @@ settings = dict(
 )
 
 
-class Pomodoro(widget.Pomodoro):
+class Pomodoro(_Pomodoro):
 
     cache_file = str(Path.home() / ".cache" / "qtile.pomodoro-state")
 
@@ -66,7 +68,7 @@ class Pomodoro(widget.Pomodoro):
             f.write(f"{self.status},{self.paused_status},{self.end_time}")
 
 
-class ArrowGraph(widget.GenPollText):
+class ArrowGraph(_GenPollText):
 
     defaults = [
         ("colors", ("005000", "909000", "e00000"), "4-tuple of colors to use for graph"),
@@ -105,7 +107,7 @@ class ArrowGraph(widget.GenPollText):
         return "<tt><big>{}{}</big></tt>".format(*arrows)
 
 
-class DotGraph(widget.GenPollText):
+class DotGraph(_GenPollText):
 
     defaults = [
         ("colors", ("00b800", "c0c000", "b80000"), "4-tuple of colors to use for graph"),

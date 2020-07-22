@@ -43,6 +43,7 @@ full_opacities = {
         "pinentry",
         "event tester",
         "tbsync account manager",
+        "calendar - mozilla thunderbird",
         },
     "type": set(),
 }
@@ -50,14 +51,14 @@ full_opacities = {
 partial_opacities = {
     "class": {
         "xfce4-terminal":            0.92,
-        "thunderbird":               0.93,
-        "gajim":                     0.93,
-        "jetbrains-idea-ce":         0.93,
-        "jetbrains-pycharm-ce":      0.93,
-        "dbeaver":                   0.93,
-        "spotify":                   0.93,
-        "code":                      0.93,
-        "microsoft teams - preview": 0.93,
+        "thunderbird":               0.97,
+        "gajim":                     0.97,
+        "jetbrains-idea-ce":         0.97,
+        "jetbrains-pycharm-ce":      0.97,
+        "dbeaver":                   0.97,
+        "spotify":                   0.97,
+        "code":                      0.97,
+        "microsoft teams - preview": 0.97,
     },
     "role": {},
     "name": {},
@@ -65,8 +66,8 @@ partial_opacities = {
 }
 
 
-def set_opacities(window: Window, dim: bool = True):
-    if hasattr(window, "_full_opacity"):
+def set_opacities(window: Window, dim: bool = True, overwrite: bool = False):
+    if hasattr(window, "_full_opacity") and not overwrite:
         return
     window._full_opacity = window.opacity
     if dim:
@@ -155,3 +156,12 @@ def reset_opacity(window: Window):
             set_opacities(previous_window)
             previous_window.opacity = previous_window._dimmed_opacity
     previous_window = window
+
+
+@hook.subscribe.client_name_updated
+def make_calendar_opacque(window: Window):
+    if window.window.get_wm_class()[1] != "thunderbird":
+        return
+    op = get_opacity_spec(window)
+    window.opacity = op["value"]
+    set_opacities(window, dim=not op["full"], overwrite=True)

@@ -117,7 +117,6 @@ def autostart():
     procs.feh()
     procs.unclutter()
     procs.network_manager()
-    procs.bluetooth()
     procs.xfce4_power_manager()
     if not util.in_debug_mode:
         procs.screensaver()
@@ -129,6 +128,7 @@ def autostart():
         util.render_dunstrc()
         util.render_compton_conf()
         util.render_terminalrc()
+        procs.bluetooth()
         procs.nextcloud_sync()
         procs.kde_connect()
         # procs.signal_desktop()

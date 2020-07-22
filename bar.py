@@ -2,8 +2,8 @@ import os
 import math
 import psutil
 from libqtile import bar, widget
-from libqtile.widget.pomodoro import _Pomodoro
-from libqtile.widget.generic_poll_text import _GenPollText
+from libqtile.widget.pomodoro import Pomodoro as _Pomodoro
+from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
 from datetime import datetime
 import util

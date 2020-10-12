@@ -1,16 +1,18 @@
 import os
 import math
 import psutil
+import sqlite3
 from libqtile import bar, widget
-from libqtile.widget.pomodoro import Pomodoro as _Pomodoro
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
-from datetime import datetime
+from widgets.checkclock import CheckclockWidget
+import datetime
 import util
 import color
 import procs
 import re
 from pathlib import Path
+import dbus
 
 
 settings = dict(
@@ -18,54 +20,6 @@ settings = dict(
     borderwidth=0,
     foreground=color.BRIGHT_GRAY,
 )
-
-
-class Pomodoro(_Pomodoro):
-
-    cache_file = str(Path.home() / ".cache" / "qtile.pomodoro-state")
-
-    def __init__(self, **config):
-        if os.path.isfile(self.cache_file):
-            with open(self.cache_file, "r") as f:
-                status = f.read()
-            if status:
-                s, p, e = status.replace("\n", "").split(",")
-                self.status = None if s == "None" else s
-                self.paused_status = None if p == "None" else p
-                self.end_time = datetime.fromisoformat(e)
-                self.time_left = datetime.now() - self.end_time
-        super().__init__(**config)
-        self._write_status()
-
-    def poll(self):
-        val = super().poll()
-        if val.startswith(self.prefix_break):
-            length = self(self.prefix_break)
-            prefix, val = val[:length], val[length:]
-        elif val.startswith(self.prefix_long_break):
-            length = self(self.prefix_long_break)
-            prefix, val = val[:length], val[length:]
-        else:
-            prefix, val = '', val
-
-        if re.match(r"\d+:\d+:\d+", val):
-            minutes = int(val.split(":")[1]) + 1
-            return "%s0:%02d" % (prefix, minutes)
-        else:
-            return prefix + val
-
-    def button_press(self, x, y, button):
-        super().button_press(x, y, button)
-        if ((button == 1 and self.status == self.STATUS_PAUSED) or
-                (button == 3 and self.status == self.STATUS_INACTIVE)):
-            procs.resume_dunst()
-        else:
-            procs.pause_dunst()
-        self._write_status()
-
-    def _write_status(self):
-        with open(self.cache_file, "w") as f:
-            f.write(f"{self.status},{self.paused_status},{self.end_time}")
 
 
 class ArrowGraph(_GenPollText):
@@ -241,12 +195,13 @@ def get_bar(screen_idx):
     def run_htop(qtile):
         qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
 
+    checkclock = CheckclockWidget(update_interval=1, paused_text="<big>⏸</big>", time_format="%H:%M",
+            paused_color=color.MID_BLUE_GRAY, **settings)
+    widgets.append(checkclock)
 
     cpu_graph = DotGraph(func=psutil.cpu_percent, max=100, update_interval=1,
             mouse_callbacks={"Button1": run_htop}, **settings)
     widgets.append(cpu_graph)
-
-
 
     net_graph = ArrowGraph(func=get_net_throughput, max=(1 << 20), update_interval=1,
             use_diff=True, up_first=False, **settings)
@@ -255,20 +210,6 @@ def get_bar(screen_idx):
     num_procs = widget.GenPollText(func=get_num_procs, update_interval=2)
     widgets.append(num_procs)
 
-    pomodoro_settings = dict(
-        prefix_inactive='🍅',
-        prefix_paused='pause',
-        prefix_break='b',
-        prefix_long_break='lb',
-        length_long_break=10,
-        length_break=5,
-        update_interval=60,
-        color_active=color.BRIGHT_ORANGE,
-        color_break=color.DARK_ORANGE,
-        color_inactive=color.DARK_RED,
-    )
-    pomodoro = Pomodoro(**pomodoro_settings, **settings)
-    widgets.append(pomodoro)
     clock = widget.Clock(format=' %Y-%m-%d %H:%M', **settings)
     widgets.append(clock)
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)

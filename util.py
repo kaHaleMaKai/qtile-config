@@ -3,6 +3,7 @@ import yaml
 import pywal
 import procs
 import subprocess
+from itertools import chain
 from typing import Tuple
 from libqtile.core.manager import Qtile
 from libqtile.window import Window
@@ -48,14 +49,57 @@ res = get_resolutions()
 num_screens = len(res)
 
 
+class RingBuffer:
+
+    def __init__(self, size: int, default=None):
+        self.size = size
+        self.buffer = [default] * size
+        self.pointer = -1
+        self.data_length = 0
+        self.nr_of_pops = 0
+
+    def __len__(self):
+        return self.data_length
+
+    def add(self, el):
+        self.data_length = min(self.data_length + 1, self.size)
+        self.pointer = (self.pointer + 1) % self.size
+        if el is not None:
+            self.buffer[self.pointer] = el
+            self.nr_of_pops = 0
+
+    def backward(self):
+        if self.data_length <= 1:
+            return None
+        self.data_length -= 1
+        self.pointer = (self.pointer - 1) % self.size
+        el = self.buffer[self.pointer]
+        self.nr_of_pops += 1
+        return el
+
+    def forward(self):
+        if not self.nr_of_pops:
+            return None
+        self.nr_of_pops -= 1
+        self.add(None)
+        return self.buffer[self.pointer]
+
+    def __repr__(self):
+        return str(self.buffer)
+
+
+group_history = RingBuffer(100)
+
+
 def go_to_group(group):
 
     @lazy.function
-    def f(qtile):
+    def f(qtile: Qtile):
         if len(qtile.screens) == 2 and group.name in "abcdef":
             screen = 1
         else:
             screen = 0
+        group_history.add(group)
         qtile.cmd_to_screen(screen)
         qtile.groups_map[group.name].cmd_toscreen()
 
@@ -71,12 +115,12 @@ def get_group_and_screen_idx(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
 
 
 def next_group() -> LazyCall:
-    if num_screens == 1:
-        return lazy.screen.next_group()
 
     @lazy.function
     def f(qtile: Qtile):
+        global group_history
         g, s = get_group_and_screen_idx(qtile, +1)
+        group_history.add(g)
         qtile.cmd_to_screen(s)
         g.cmd_toscreen()
 
@@ -84,14 +128,50 @@ def next_group() -> LazyCall:
 
 
 def prev_group() -> LazyCall:
-    if num_screens == 1:
-        return lazy.screen.prev_group()
 
     @lazy.function
     def f(qtile):
+        global group_history
         g, s = get_group_and_screen_idx(qtile, -1)
+        group_history.add(g)
         qtile.cmd_to_screen(s)
         g.cmd_toscreen()
+
+    return f
+
+
+def history_back() -> LazyCall:
+
+    @lazy.function
+    def f(qtile: Qtile):
+        group = group_history.backward()
+        if not group:
+            return
+
+        if len(qtile.screens) == 2 and group.name in "abcdef":
+            screen = 1
+        else:
+            screen = 0
+        qtile.cmd_to_screen(screen)
+        qtile.groups_map[group.name].cmd_toscreen()
+
+    return f
+
+
+def history_forward() -> LazyCall:
+
+    @lazy.function
+    def f(qtile: Qtile):
+        group = group_history.forward()
+        if not group:
+            return
+
+        if len(qtile.screens) == 2 and group.name in "abcdef":
+            screen = 1
+        else:
+            screen = 0
+        qtile.cmd_to_screen(screen)
+        qtile.groups_map[group.name].cmd_toscreen()
 
     return f
 
@@ -105,8 +185,8 @@ def move_window_to_offset_group(offset: int) -> LazyCall:
     def f(qtile: Qtile):
         current = qtile.current_group.name
         next , _ = get_group_and_screen_idx(qtile, offset)
-        if (offset < 0 and next.name < current) or (offset > 0 and next.name > current):
-            qtile.current_window.togroup(next.name)
+        # if (offset < 0 and next.name < current) or (offset > 0 and next.name > current):
+        qtile.current_window.togroup(next.name)
 
     return f
 
@@ -168,8 +248,10 @@ def get_wal_colors():
     else:
         with open(yaml_file, "r") as f:
             colors = yaml.load(f.read(), Loader=yaml.BaseLoader)
+    # all_colors = ["#" + complement(c, 0.4) if 1 < i < 9 else c for i, c in enumerate(colors["colors"].values())]
+    all_colors = colors["colors"].values()
     return {
-        "colors": colors["colors"].values(),
+        "colors": all_colors,
         "bg": colors["special"]["background"],
         "fg": colors["special"]["foreground"],
         "cursor": colors["special"]["cursor"],
@@ -214,7 +296,6 @@ def restart_qtile(qtile: Qtile):
         for window in group.windows:
             try:
                 window.opacity = window._full_opacity
-                print(f"restart name: {window.name}, opacity: {window.opacity}, full: {window._full_opacity}, dimmed: {window._dimmed_opacity}")
             except AttributeError:
                 pass
     qtile.cmd_restart()

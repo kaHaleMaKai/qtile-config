@@ -71,7 +71,7 @@ def set_opacities(window: Window, dim: bool = True, overwrite: bool = False):
         return
     window._full_opacity = window.opacity
     if dim:
-        window._dimmed_opacity = window._full_opacity * 0.85
+        window._dimmed_opacity = window._full_opacity * 0.93
         window._dimmable = True
     else:
         window._dimmed_opacity = 1.0

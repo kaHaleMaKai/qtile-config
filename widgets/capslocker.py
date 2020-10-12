@@ -24,6 +24,12 @@ from libqtile.widget import base
 import re
 import subprocess
 import notify2
+from procs import dunstify
+
+
+ID = 1928398723
+SUMMARY = "Caps_Lock on"
+MSG = "| A⇬ |"
 
 
 class CapsLockIndicator(base.ThreadPoolText):
@@ -36,13 +42,7 @@ class CapsLockIndicator(base.ThreadPoolText):
     def __init__(self, **config):
         base.ThreadPoolText.__init__(self, "", **config)
         self.add_defaults(self.defaults)
-        self.lock_msg = "| A⇬ |"
         self.is_locked = None
-        if self.send_notifications:
-            print("hello")
-            self.notification = notify2.Notification("Caps_Lock on", self.lock_msg)
-            self.notification.timeout = -1
-            self.notification.urgency = notify2.URGENCY_CRITICAL
 
     def get_state(self):
         """Return a list with the current state of the keys."""
@@ -62,11 +62,11 @@ class CapsLockIndicator(base.ThreadPoolText):
         new_state = self.get_state()
         if self.send_notifications and self.is_locked != new_state:
             if new_state:
-                self.notification.show()
+                dunstify.run(f"--replace={ID}", "-u", "critical", SUMMARY, MSG)
             else:
-                self.notification.close()
+                dunstify.run(f"--close={ID}")
         self.is_locked = new_state
         if new_state:
-            return self.lock_msg
+            return MSG
         else:
             return ""

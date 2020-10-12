@@ -23,7 +23,7 @@ dunstrc:
       timeout:  0
 
 compton.conf:
-  menu_opacity: 0.9
+  menu_opacity: 0.98
   shadow: true
   shadow_radius: 10
   shadow_offset: -5

@@ -8,7 +8,7 @@ from libqtile.window import Window
 from libqtile.backend.x11.xcbq import Window as XWindow
 
 
-from typing import List  # noqa: F401
+from typing import List, Callable  # noqa: F401
 
 # custom imports – parts of config
 
@@ -160,31 +160,3 @@ def minimize_window(window: Window):
                 qtile: Qtile = window.qtile
                 window.cmd_togroup(heidi_group.name)
                 window.cmd_focus()
-
-
-previous_window_class = None
-
-
-# @hook.subscribe.client_focus
-def copy_intellij_clipboard(window: Window):
-    global previous_window_class
-    cls = window.window.get_wm_class()[1].lower()
-    if cls is previous_window_class:
-        return
-
-    intellij = 'intellij'
-    if cls != intellij and previous_window_class != intellij:
-        previous_window_class = cls
-        return
-    if previous_window_class == intellij:
-        from_display = 11
-        to_display = 0
-    else:
-        from_display = 0
-        to_display = 11
-    from_cmd = f"xclip -selection c -o -display :{from_display}".split(" ")
-    to_cmd = f"xclip -selection c -i -display :{to_display}".split(" ")
-    from_proc = subprocess.Popen(from_cmd, stdout=subprocess.PIPE)
-    to_proc = subprocess.run(to_cmd, stdin=from_proc.stdout)
-    from_proc.wait()
-    previous_window_class = cls

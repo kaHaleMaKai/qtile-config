@@ -3,7 +3,7 @@ from libqtile.command import lazy
 from libqtile.lazy import LazyCall
 from util import (prev_group, next_group, spawncmd, go_to_screen, move_to_screen, in_debug_mode,
                   restart_qtile, move_window_to_offset_group, start_distraction_free_mode,
-                  stop_distraction_free_mode, update_path, is_laptop_connected)
+                  stop_distraction_free_mode, update_path, is_laptop_connected, history_back, history_forward)
 
 modifier_keys = {
    "M": "M",
@@ -100,8 +100,6 @@ keys = KeyList({
     "M-<Right>":       next_group,
     "M-y":             move_window_to_offset_group(-1),
     "M-x":             move_window_to_offset_group(+1),
-    "M-p":             lazy.screen.toggle_group,
-    "M-S-p":           lazy.group.focus_back,
     "M-h":             lazy.layout.left,
     "M-l":             lazy.layout.right,
     "M-j":             lazy.layout.down,
@@ -139,6 +137,8 @@ keys = KeyList({
     "M-r":             spawncmd,
     "M-S-<F12>":       start_distraction_free_mode,
     "M-<F12>":         stop_distraction_free_mode,
+    "M-p":             history_back,
+    "M-S-p":           history_forward,
     "M-<Return>":      "xfce4-terminal -e zsh",
     "M-S-<Left>":      "shiftred r-",
     "M-S-<Right>":     "shiftred r+",

@@ -55,9 +55,9 @@ def to_hex(fn):
 
 
 @to_hex
-def complement(color):
+def complement(color, scale=1):
     triplet = hex_to_dec(color)
-    return tuple(255 - c for c in triplet)
+    return tuple(int((1-scale)*c + scale * (255 - c)) for c in triplet)
 
 
 def lin(start, stop, scaling):

@@ -195,8 +195,14 @@ def get_bar(screen_idx):
     def run_htop(qtile):
         qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
 
-    checkclock = CheckclockWidget(update_interval=1, paused_text="<big>⏸</big>", time_format="%H:%M",
-            paused_color=color.MID_BLUE_GRAY, **settings)
+
+    def notify_checkclock_pause(is_paused: bool, _: str):
+        p = "pause" if is_paused else "resume"
+        procs.dunstify(f"{p} checkclock")
+
+
+    checkclock = CheckclockWidget(update_interval=5, pause_function=notify_checkclock_pause,
+            paused_text="<big>⏸</big>", time_format="%H:%M", paused_color=color.MID_ORANGE, **settings)
     widgets.append(checkclock)
 
     cpu_graph = DotGraph(func=psutil.cpu_percent, max=100, update_interval=1,

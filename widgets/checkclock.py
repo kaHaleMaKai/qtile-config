@@ -3,7 +3,7 @@ import dbus
 import sqlite3
 import datetime
 from pathlib import Path
-from libqtile.widget.base import ThreadedPollText, ORIENTATION_HORIZONTAL
+from libqtile.widget.base import ThreadedPollText, _TextBox, ORIENTATION_HORIZONTAL
 
 
 class Checkclock:
@@ -30,7 +30,6 @@ class Checkclock:
         self.dbus_method = dbus.Interface(proxy_object, "org.cinnamon.ScreenSaver").GetActive
         self.path = path
         self.tick_length = tick_length
-        self._dont_tick = False
         self.today = self.get_today()
         if not self.path.parent.exists():
             self.path.mkdir(parents=True, exists_ok=True)
@@ -87,19 +86,16 @@ class Checkclock:
         with con:
             con.execute("UPDATE paused SET state = NOT state")
         self.paused = not self.paused
-        self._dont_tick = True
 
     def is_screensaver_active(self):
         return bool(self.dbus_method())
 
-    def get_value(self):
+    def get_value(self, tick=True):
         if self.paused:
             return -1
         if self.is_screensaver_active():
             return self.duration
-        if self._dont_tick:
-            self._dont_tick = False
-        else:
+        if tick:
             self.tick()
         return self.duration
 
@@ -111,17 +107,20 @@ class CheckclockWidget(ThreadedPollText):
             ("paused_text", "paused", "text to show when paused"),
             ("time_format", "%H:%M", "strftime-like format for checkclock time"),
             ("foreground", "#ffffff", "foreground color of text"),
-            ("paused_color" "#808080", "color of paused text")
+            ("paused_color" "#808080", "color of paused text"),
+            ("pause_button", 1, "mouse button to toggle pause"),
+            ("pause_function", None, "function to call when toggling the pause state. "
+                "receives arguments (is_paused: bool, value: str) as arguments")
     ]
 
     def __init__(self, **config):
-        callbacks = {"Button1": self.toggle_paused}
-        super().__init__(mouse_callbacks=callbacks, **config)
+        super().__init__(**config)
         self.add_defaults(CheckclockWidget.defaults)
         db_path = Path(os.path.expanduser(self.db_path))
         self.checkclock = Checkclock(tick_length=self.update_interval, path=db_path)
         self.foreground = self.foreground[1:] if self.foreground.startswith("#") else self.foreground
         self.paused_color = self.paused_color[1:] if self.paused_color.startswith("#") else self.paused_color
+        self.pause_button = int(self.pause_button)
 
     def format_time(self, duration):
         seconds = duration % 60
@@ -130,15 +129,22 @@ class CheckclockWidget(ThreadedPollText):
         hours = rem // 60
         return datetime.time(hours, minutes, seconds).strftime(self.time_format)
 
-    def toggle_paused(self, _):
+    def toggle_paused(self):
         self.checkclock.toggle_paused()
-        self.poll()
+        value = self.poll(tick=not self.checkclock.paused)
+        if self.pause_function:
+            self.pause_function(self.checkclock.paused, self.format_time(self.checkclock.duration))
+        self.update(text=value)
+
+    def button_press(self, x, y, button):
+        if button == self.pause_button:
+            self.toggle_paused()
 
     def span(self, text, color):
         return f"<span foreground='#{color}'>{text}</span>"
 
-    def poll(self):
-        duration = self.checkclock.get_value()
+    def poll(self, tick=True):
+        duration = self.checkclock.get_value(tick=tick)
         if duration == -1:
             return self.span(self.paused_text, self.paused_color)
         return self.span(self.format_time(duration), self.foreground)

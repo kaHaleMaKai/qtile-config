@@ -106,11 +106,11 @@ class CheckclockWidget(ThreadedPollText):
             ("db_path", "~/.config/qtile/checkclock.sqlite", "path to the sqlite db"),
             ("paused_text", "paused", "text to show when paused"),
             ("time_format", "%H:%M", "strftime-like format for checkclock time"),
-            ("foreground", "#ffffff", "foreground color of text"),
+            ("active_color", "#ffffff", "color of text in active state"),
             ("paused_color" "#808080", "color of paused text"),
             ("pause_button", 1, "mouse button to toggle pause"),
             ("pause_function", None, "function to call when toggling the pause state. "
-                "receives arguments (is_paused: bool, value: str) as arguments")
+                "receives arguments (is_paused: bool, value: str)")
     ]
 
     def __init__(self, **config):
@@ -118,7 +118,7 @@ class CheckclockWidget(ThreadedPollText):
         self.add_defaults(CheckclockWidget.defaults)
         db_path = Path(os.path.expanduser(self.db_path))
         self.checkclock = Checkclock(tick_length=self.update_interval, path=db_path)
-        self.foreground = self.foreground[1:] if self.foreground.startswith("#") else self.foreground
+        self.active_color = self.active_color[1:] if self.active_color.startswith("#") else self.active_color
         self.paused_color = self.paused_color[1:] if self.paused_color.startswith("#") else self.paused_color
         self.pause_button = int(self.pause_button)
 
@@ -127,9 +127,9 @@ class CheckclockWidget(ThreadedPollText):
         rem = duration // 60
         minutes = rem % 60
         hours = rem // 60
-        return datetime.time(hours, minutes, seconds).strftime(self.time_format)
+        return datetime.time(hours, minutes, seconds).strftime(self.time_format).strip()
 
-    def toggle_paused(self):
+    def cmd_toggle_paused(self):
         self.checkclock.toggle_paused()
         value = self.poll(tick=not self.checkclock.paused)
         if self.pause_function:
@@ -138,7 +138,7 @@ class CheckclockWidget(ThreadedPollText):
 
     def button_press(self, x, y, button):
         if button == self.pause_button:
-            self.toggle_paused()
+            self.cmd_toggle_paused()
 
     def span(self, text, color):
         return f"<span foreground='#{color}'>{text}</span>"
@@ -147,4 +147,4 @@ class CheckclockWidget(ThreadedPollText):
         duration = self.checkclock.get_value(tick=tick)
         if duration == -1:
             return self.span(self.paused_text, self.paused_color)
-        return self.span(self.format_time(duration), self.foreground)
+        return self.span(self.format_time(duration), self.active_color)

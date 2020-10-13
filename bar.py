@@ -175,7 +175,21 @@ def get_bar(screen_idx):
     task_list = widget.TaskList(**task_args)
     widgets.append(task_list)
 
+
     if is_primary:
+
+
+        def notify_checkclock_pause(is_paused: bool, _: str):
+            p = "pause" if is_paused else "resume"
+            procs.dunstify(f"{p} checkclock")
+
+
+        paused_text = "<big>⏸</big>"
+        checkclock = CheckclockWidget(update_interval=5, pause_function=notify_checkclock_pause,
+                paused_text=paused_text, time_format="%k:%M", paused_color=color.MID_ORANGE,
+                active_color=color.RED, default_text=paused_text, **settings)
+        widgets.append(checkclock)
+
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
 
     widgets.append(space())
@@ -195,15 +209,6 @@ def get_bar(screen_idx):
     def run_htop(qtile):
         qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
 
-
-    def notify_checkclock_pause(is_paused: bool, _: str):
-        p = "pause" if is_paused else "resume"
-        procs.dunstify(f"{p} checkclock")
-
-
-    checkclock = CheckclockWidget(update_interval=5, pause_function=notify_checkclock_pause,
-            paused_text="<big>⏸</big>", time_format="%H:%M", paused_color=color.MID_ORANGE, **settings)
-    widgets.append(checkclock)
 
     cpu_graph = DotGraph(func=psutil.cpu_percent, max=100, update_interval=1,
             mouse_callbacks={"Button1": run_htop}, **settings)

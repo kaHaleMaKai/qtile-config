@@ -185,9 +185,8 @@ def get_bar(screen_idx):
 
 
         paused_text = "<big>⏸</big>"
-        checkclock = CheckclockWidget(update_interval=5, pause_function=notify_checkclock_pause,
-                paused_text=paused_text, time_format="%k:%M", paused_color=color.MID_ORANGE,
-                active_color=color.RED, default_text=paused_text, **settings)
+        checkclock = CheckclockWidget(update_interval=5, paused_text=paused_text, time_format="%k:%M",
+                paused_color=color.MID_ORANGE, active_color=color.RED, default_text=paused_text, pause_button=3, **settings)
         widgets.append(checkclock)
 
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))

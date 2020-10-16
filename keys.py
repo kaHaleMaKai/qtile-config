@@ -160,6 +160,7 @@ keys = KeyList({
     "M-S-u":           "toggle-unclutter",
     "M-s":             "flameshot gui",
     "M-S-s":           "flameshot launcher",
+    "M-C-s":           "kazam",
     "M-C-p":           "cinnamon-screensaver-command --lock",
     "M-<F1>":          "configure-screens small",
     "M-<F2>":          "configure-screens dual-external",

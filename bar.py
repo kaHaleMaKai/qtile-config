@@ -5,7 +5,7 @@ import sqlite3
 from libqtile import bar, widget
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
-from widgets.checkclock import CheckclockWidget
+from widgets.checkclock_widget import CheckclockWidget
 import datetime
 import util
 import color
@@ -183,10 +183,25 @@ def get_bar(screen_idx):
             p = "pause" if is_paused else "resume"
             procs.dunstify(f"{p} checkclock")
 
-
         paused_text = "<big>⏸</big>"
-        checkclock = CheckclockWidget(update_interval=5, paused_text=paused_text, time_format="%k:%M",
-                paused_color=color.MID_ORANGE, active_color=color.RED, default_text=paused_text, pause_button=3, **settings)
+        checkclock_args = dict(
+                update_interval=5,
+                paused_text=paused_text,
+                time_format="%k:%M",
+                paused_color=color.MID_ORANGE,
+                active_color=color.RED,
+                default_text=paused_text,
+                pause_button=3,
+                done_color=color.GREEN,
+                almost_done_color=color.YELLOW,
+                working_days="Tue-Fri",
+                )
+        checkclock_args.update(settings)
+
+        if util.in_debug_mode:
+            checkclock_args["db_path"] = "/tmp/checkclock.sqlite"
+
+        checkclock = CheckclockWidget(**checkclock_args)
         widgets.append(checkclock)
 
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))

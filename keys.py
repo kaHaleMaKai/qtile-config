@@ -177,6 +177,7 @@ keys = KeyList({
     "C-<XF86AudioMute>":        "configure-volume --mute-all",
     "M-w": update_path,
     "M-i": lazy.widget['checkclockwidget'].toggle_paused(),
+    "M-S-i": lazy.widget['checkclockwidget'].show_schedule(),
 })
 
 if is_laptop_connected():

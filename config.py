@@ -135,9 +135,12 @@ def autostart():
     procs.setxkbmap()
 
 
-@hook.subscribe.screen_change
-def screen_change(qtile: Qtile, event):
-    util.restart_qtile(qtile)
+# this hook keeps on firing in xephyr so that qtile
+# can't even start up properly
+if not util.in_debug_mode:
+    @hook.subscribe.screen_change
+    def screen_change(qtile: Qtile, event):
+        util.restart_qtile(qtile)
 
 
 @hook.subscribe.client_new

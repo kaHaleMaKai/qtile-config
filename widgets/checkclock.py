@@ -1,6 +1,10 @@
 import os
 import re
-import dbus  # type: ignore  # no stub present
+try:
+    import xdbus  # type: ignore  # no stub present
+    has_dbus = True
+except ImportError:
+    has_dbus = False
 import sqlite3
 import datetime
 from pathlib import Path
@@ -115,15 +119,19 @@ class Checkclock:
     paused_state = -1
     not_working_state = -2
 
-    def __init__(self, tick_length: int, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri"):
+    def __init__(self, tick_length: int, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri", ro: bool = False):
         self.working_days = Weekday.parse(working_days)
         self.work_today = self.check_work_today()
-        proxy_object = dbus.SessionBus().get_object("org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver")
-        self.dbus_method = dbus.Interface(proxy_object, "org.cinnamon.ScreenSaver").GetActive
+        if has_dbus:
+            proxy_object = dbus.SessionBus().get_object("org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver")
+            self.dbus_method = dbus.Interface(proxy_object, "org.cinnamon.ScreenSaver").GetActive
+        else:
+            self.dbus_method = lambda: False
         self.path = path
         self.tick_length = tick_length
         self.today = datetime.date.today()
         self.avg_working_time = avg_working_time
+        self.ro = ro
         if not self.path.exists():
             self.init_db()
             self.paused = True
@@ -149,7 +157,8 @@ class Checkclock:
 
 
     def get_connection(self) -> sqlite3.Connection:
-        con = sqlite3.connect(str(self.path))
+        uri = f"{self.path.as_uri()}?mode=ro" if self.ro else self.path.as_uri()
+        con = sqlite3.connect(uri, uri=True)
         con.row_factory = sqlite3.Row
         return con
 
@@ -260,7 +269,7 @@ class Checkclock:
     def merge_durations(self, days_back:int,
             con: Optional[sqlite3.Connection] = None) -> Generator[Tuple[datetime.date, datetime.date], None, None]:
         merge_threshold = as_delta(self.tick_length)
-        min_duration = min(self.tick_length, 60)
+        min_duration = max(self.tick_length, 60)
         if not con:
             con = self.get_connection()
         cur = con.cursor()
@@ -288,7 +297,7 @@ class Checkclock:
             yield prev_duration
 
 
-    def compact(self, days_back: int, con: Optional[sqlite3.Connection] = None):
+    def compact(self, days_back: int, con: Optional[sqlite3.Connection] = None) -> None:
         if days_back <= 0:
             raise ValueError(f"bad number for days_back. got: {days_back}. expected: days_back >= 1")
 
@@ -340,3 +349,21 @@ class Checkclock:
             yield (datetime.time.fromisoformat(start),
                     datetime.time.fromisoformat(end),
                     duration)
+
+
+class ReadOnlyCheckclock(Checkclock):
+
+    def __init__(self, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri"):
+        super().__init__(tick_length=60, path=path, avg_working_time=avg_working_time, working_days=working_days, ro=True)
+
+    def tick(self) -> None:
+        pass
+
+    def get_value(self) -> None:
+        return None
+
+    def toggle_paused(self) -> None:
+        pass
+
+    def compact(self, days_back: int, con: Optional[sqlite3.Connection] = None) -> None:
+        pass

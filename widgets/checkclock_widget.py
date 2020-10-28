@@ -1,10 +1,11 @@
 import os
 import shutil
 import datetime
-from typing import Generator
+from typing import Generator, List
 from procs import dunstify
 from pathlib import Path
 from libqtile.widget.base import ThreadedPollText, ORIENTATION_HORIZONTAL
+from libqtile.widget.textbox import TextBox
 from .checkclock import Checkclock, normalize_color, as_time, as_hours_and_minutes, get_previous_date
 
 
@@ -37,6 +38,12 @@ class CheckclockWidget(ThreadedPollText):
         self.almost_done_color = normalize_color(self.almost_done_color)
         self.paused_color = normalize_color(self.paused_color)
         self.pause_button = int(self.pause_button)
+        self.companions: List[TextBox] = []
+
+    def new_companion(self) -> TextBox:
+        box = TextBox(text=self.text)
+        self.companions.append(box)
+        return box
 
     def format_time(self, duration: int) -> str:
         seconds = duration % 60
@@ -51,6 +58,11 @@ class CheckclockWidget(ThreadedPollText):
         if self.pause_function:
             self.pause_function(self.checkclock.paused, self.format_time(self.checkclock.duration))
         self.update(text=value)
+
+    def update(self, text: str) -> None:
+        super().update(text=text)
+        for companion in self.companions:
+            companion.text = text
 
     def button_press(self, x: int, y: int, button: int) -> None:
         if button == self.pause_button:

@@ -1,15 +1,18 @@
 import os
 import re
 try:
-    import xdbus  # type: ignore  # no stub present
+    import dbus  # type: ignore  # no stub present
     has_dbus = True
 except ImportError:
     has_dbus = False
 import sqlite3
 import datetime
 from pathlib import Path
-from typing import Optional, Tuple, List, Generator, Callable
+from typing import Optional, Tuple, List, Generator, Callable, Any
 from enum import Enum
+
+
+MaybeConnection = Optional[sqlite3.Connection]
 
 
 def normalize_color(color: str) -> str:
@@ -119,7 +122,7 @@ class Checkclock:
     paused_state = -1
     not_working_state = -2
 
-    def __init__(self, tick_length: int, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri", ro: bool = False):
+    def __init__(self, tick_length: int, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri", ro: bool = False, hooks: Callable[[int], Any] = None):
         self.working_days = Weekday.parse(working_days)
         self.work_today = self.check_work_today()
         if has_dbus:
@@ -132,6 +135,8 @@ class Checkclock:
         self.today = datetime.date.today()
         self.avg_working_time = avg_working_time
         self.ro = ro
+        self.hooks: List[Callable[[int]], Any] = [h for h in hooks] if hooks else []
+
         if not self.path.exists():
             self.init_db()
             self.paused = True
@@ -162,18 +167,16 @@ class Checkclock:
         con.row_factory = sqlite3.Row
         return con
 
-    def get_duration_from_db(self) -> int:
-        con = self.get_connection()
-        with con:
-            cur = con.cursor()
-            cur.execute("SELECT Coalesce(Sum(duration), 0) AS duration FROM schedule WHERE date = ?",
-                    [datetime.date.today()])
-            row = cur.fetchone()
-            duration = row["duration"]
-        return duration
+    def get_duration_from_db(self, con: MaybeConnection = None) -> int:
+        con = con or self.get_connection()
+        cur = con.cursor()
+        cur.execute("SELECT Coalesce(Sum(duration), 0) AS duration FROM schedule WHERE date = ?",
+                [datetime.date.today()])
+        row = cur.fetchone()
+        return row["duration"]
 
-    def get_paused_state_from_db(self) -> bool:
-        con = self.get_connection()
+    def get_paused_state_from_db(self, con: MaybeConnection = None) -> bool:
+        con = con or self.get_connection()
         with con:
             cur = con.cursor()
             return bool(cur.execute("SELECT state FROM paused").fetchone()["state"])
@@ -185,19 +188,30 @@ class Checkclock:
             con.execute("INSERT INTO schedule (date, time, duration) VALUES (?, ?, ?)",
                     [now.strftime("%F"), now.strftime("%H:%M:%S"), self.tick_length])
         today = datetime.date.today()
+
         if self.today == today and self.work_today:
-            self.duration += self.tick_length
+            if self.duration % 600 == 0:
+                self.duration = self.get_duration_from_db(con)
+            else:
+                self.duration += self.tick_length
+            self.call_hooks()
         else:
             self.today = today
             self.work_today = self.check_work_today(today)
             if self.work_today:
                 self.duration = self.tick_length
+                self.call_hooks()
             else:
                 self.duration = 0
+                self.call_hooks()
             min_duration = min(60, self.tick_length)
             for date in self.get_dates_from_schedule():
                 days_back = (datetime.date.today() - date).days
                 self.compact(days_back=days_back, con=con)
+
+    def call_hooks(self) -> None:
+        for hook in self.hooks:
+            hook(self.duration)
 
     def check_work_today(self, today: Optional[datetime.date] = None) -> bool:
         t :datetime.date = today if today else datetime.date.today()
@@ -267,11 +281,10 @@ class Checkclock:
             return 0
 
     def merge_durations(self, days_back:int,
-            con: Optional[sqlite3.Connection] = None) -> Generator[Tuple[datetime.date, datetime.date], None, None]:
+            con: MaybeConnection = None) -> Generator[Tuple[datetime.date, datetime.date], None, None]:
         merge_threshold = as_delta(self.tick_length)
         min_duration = max(self.tick_length, 60)
-        if not con:
-            con = self.get_connection()
+        con = con or self.get_connection()
         cur = con.cursor()
         prev_duration = None
 
@@ -297,7 +310,7 @@ class Checkclock:
             yield prev_duration
 
 
-    def compact(self, days_back: int, con: Optional[sqlite3.Connection] = None) -> None:
+    def compact(self, days_back: int, con: MaybeConnection = None) -> None:
         if days_back <= 0:
             raise ValueError(f"bad number for days_back. got: {days_back}. expected: days_back >= 1")
 
@@ -321,8 +334,7 @@ class Checkclock:
         WHERE
           date = ?
         """
-        if not con:
-            con = self.get_connection()
+        con = con or self.get_connection()
         for start, end in self.merge_durations(days_back):
             duration = int((end - start).total_seconds())
             con.execute(backlog_sql, [date, start.strftime("%T"), end.strftime("%T"), duration])
@@ -353,8 +365,8 @@ class Checkclock:
 
 class ReadOnlyCheckclock(Checkclock):
 
-    def __init__(self, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri"):
-        super().__init__(tick_length=60, path=path, avg_working_time=avg_working_time, working_days=working_days, ro=True)
+    def __init__(self, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri", merge_threshold: int = 5):
+        super().__init__(tick_length=merge_threshold, path=path, avg_working_time=avg_working_time, working_days=working_days, ro=True)
 
     def tick(self) -> None:
         pass
@@ -365,5 +377,5 @@ class ReadOnlyCheckclock(Checkclock):
     def toggle_paused(self) -> None:
         pass
 
-    def compact(self, days_back: int, con: Optional[sqlite3.Connection] = None) -> None:
+    def compact(self, days_back: int, con: MaybeConnection = None) -> None:
         pass

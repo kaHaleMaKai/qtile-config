@@ -8,7 +8,7 @@ except ImportError:
 import sqlite3
 import datetime
 from pathlib import Path
-from typing import Optional, Tuple, List, Generator, Callable, Any
+from typing import Optional, Tuple, List, Generator, Callable, Any, Dict
 from enum import Enum
 
 
@@ -122,7 +122,18 @@ class Checkclock:
     paused_state = -1
     not_working_state = -2
 
-    def __init__(self, tick_length: int, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri", ro: bool = False, hooks: Callable[[int], Any] = None):
+    def __init__(self,
+            tick_length: int,
+            path: Path,
+            avg_working_time: int = 8*60*60,
+            working_days: str = "Mon-Fri",
+            ro: bool = False,
+            on_duration_update: Optional[Callable[[int], Any]] = None,
+            on_tick: Optional[Callable[[int], Any]] = None,
+            on_pause: Optional[Callable[[int], Any]] = None,
+            on_resume: Optional[Callable[[int], Any]] = None,
+            on_rollover: Optional[Callable[[int], Any]] = None,
+            ) -> None:
         self.working_days = Weekday.parse(working_days)
         self.work_today = self.check_work_today()
         if has_dbus:
@@ -135,7 +146,19 @@ class Checkclock:
         self.today = datetime.date.today()
         self.avg_working_time = avg_working_time
         self.ro = ro
-        self.hooks: List[Callable[[int]], Any] = [h for h in hooks] if hooks else []
+        self._duration = 0
+
+        self.hooks: Dict[Callable[[Any, ...], Any]] = {}
+        if on_duration_update:
+            self.hooks["on_duration_update"] = on_duration_update
+        if on_tick:
+            self.hooks["on_tick"] = on_tick
+        if on_pause:
+            self.hooks["on_pause"] = on_pause
+        if on_resume:
+            self.hooks["on_resume"] = on_resume
+        if on_rollover:
+            self.hooks["on_rollover"] = on_rollover
 
         if not self.path.exists():
             self.init_db()
@@ -144,6 +167,15 @@ class Checkclock:
         else:
             self.duration = self.get_duration_from_db()
             self.paused = self.get_paused_state_from_db()
+
+    @property
+    def duration(self) -> int:
+        return self._duration
+
+    @duration.setter
+    def duration(self, duration: int) -> None:
+        self._duration = duration
+        self.call_hook("on_duration_update", duration)
 
     def init_db(self) -> None:
         if not self.path.parent.exists():
@@ -159,7 +191,6 @@ class Checkclock:
                 con.execute("CREATE TABLE balance (date DATE, seconds_worked INTEGER)")
                 con.execute("CREATE UNIQUE INDEX date_balance_idx ON balance (date)")
                 con.execute("INSERT INTO paused VALUES (true)")
-
 
     def get_connection(self) -> sqlite3.Connection:
         uri = f"{self.path.as_uri()}?mode=ro" if self.ro else self.path.as_uri()
@@ -182,6 +213,7 @@ class Checkclock:
             return bool(cur.execute("SELECT state FROM paused").fetchone()["state"])
 
     def tick(self) -> None:
+        self.call_hook("on_tick", self.duration)
         con = self.get_connection()
         now = datetime.datetime.now()
         with con:
@@ -194,24 +226,22 @@ class Checkclock:
                 self.duration = self.get_duration_from_db(con)
             else:
                 self.duration += self.tick_length
-            self.call_hooks()
         else:
             self.today = today
             self.work_today = self.check_work_today(today)
             if self.work_today:
                 self.duration = self.tick_length
-                self.call_hooks()
             else:
+                self.call_hook("on_rollover", self.duration)
                 self.duration = 0
-                self.call_hooks()
             min_duration = min(60, self.tick_length)
             for date in self.get_dates_from_schedule():
                 days_back = (datetime.date.today() - date).days
                 self.compact(days_back=days_back, con=con)
 
-    def call_hooks(self) -> None:
-        for hook in self.hooks:
-            hook(self.duration)
+    def call_hook(self, hook: str, *args, **kwargs) -> None:
+        if hook in self.hooks:
+            self.hooks[hook](*args, **kwargs)
 
     def check_work_today(self, today: Optional[datetime.date] = None) -> bool:
         t :datetime.date = today if today else datetime.date.today()
@@ -230,6 +260,10 @@ class Checkclock:
         with con:
             con.execute("UPDATE paused SET state = NOT state")
         self.paused = not self.paused
+        if self.paused:
+            self.call_hook("on_pause", self.duration)
+        else:
+            self.call_hook("on_resume", self.duration)
 
     def is_screensaver_active(self) -> bool:
         return bool(self.dbus_method())

@@ -173,7 +173,7 @@ def test_hooks(tmp_path):
         acc.append(duration)
 
     assert len(acc) == 0
-    checkclock = new_checkclock(tmp_path, hooks=[inc])
+    checkclock = new_checkclock(tmp_path, on_duration_update=inc)
     checkclock.tick()
     assert acc[-1] == checkclock.tick_length
     19 * repeat(checkclock.tick)

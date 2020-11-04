@@ -102,15 +102,19 @@ def fixed_today():
     return freeze_time(get_today().isoformat())
 
 
-@pytest.fixture
-def checkclock(tmp_path):
+def new_checkclock(tmp_path, *args, **kwargs):
     path = tmp_path / "test.sqlite"
     with fixed_yesterday():
-        checkclock = MemoryCheckclock(tick_length=1, path=path, working_days="Mon-Sun", avg_working_time=2)
+        checkclock = MemoryCheckclock(tick_length=1, path=path, working_days="Mon-Sun", avg_working_time=2,
+                *args, **kwargs)
         checkclock.toggle_paused()
         assert checkclock.duration == 0
     return checkclock
 
+
+@pytest.fixture
+def checkclock(tmp_path):
+    return new_checkclock(tmp_path)
 
 
 def test_get_dates_from_schedule(checkclock: MemoryCheckclock):
@@ -148,9 +152,9 @@ def test_get_balance(checkclock: MemoryCheckclock):
         checkclock.tick()
         ft.tick()
         assert checkclock.duration == checkclock.tick_length
-        2 * repeat(checkclock.tick, ft.tick)
-        assert checkclock.duration == 3 * checkclock.tick_length
-        assert checkclock.get_balance(days_back=0, min_duration=0) == 1
+        63 * repeat(checkclock.tick, ft.tick)
+        assert checkclock.duration == 64 * checkclock.tick_length
+        assert checkclock.get_balance(days_back=0, min_duration=0) == 62
 
     with fixed_today() as ft:
         assert checkclock.today == yesterday
@@ -158,4 +162,19 @@ def test_get_balance(checkclock: MemoryCheckclock):
         assert checkclock.today == get_today()
         assert checkclock.duration == 4 * checkclock.tick_length
         assert checkclock.get_balance(days_back=0, min_duration=0) == 2
-        assert checkclock.get_balance(days_back=1, min_duration=0) == 1
+        assert checkclock.get_balance(days_back=1, min_duration=0) == 62
+
+
+def test_hooks(tmp_path):
+
+    acc = []
+
+    def inc(duration: int) -> None:
+        acc.append(duration)
+
+    assert len(acc) == 0
+    checkclock = new_checkclock(tmp_path, hooks=[inc])
+    checkclock.tick()
+    assert acc[-1] == checkclock.tick_length
+    19 * repeat(checkclock.tick)
+    assert acc[-1] == 20 * checkclock.tick_length

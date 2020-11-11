@@ -134,6 +134,7 @@ class Checkclock:
             on_resume: Optional[Callable[[int], Any]] = None,
             on_rollover: Optional[Callable[[int], Any]] = None,
             ) -> None:
+
         self.working_days = Weekday.parse(working_days)
         self.work_today = self.check_work_today()
         if has_dbus:

@@ -1,5 +1,6 @@
 import os
 import shutil
+import random
 import datetime
 from typing import Generator, List
 from procs import dunstify
@@ -25,20 +26,24 @@ class CheckclockWidget(ThreadedPollText):
                 "receives arguments (is_paused: bool, value: str)"),
             ("avg_working_time", 8*60*60, "number of seconds to work per day"),
             ("working_days", "Mon-Fri", "textual representation of working days, e.g. Mon-Fri, Tue,Wed-Sat"),
+            ("hooks", None, "dict of callbacks. keys: on_duration_update, on_tick, on_pause, on_resume, on_rollover. " +
+                            "all expect a Callable[[int], Any] as value. They receive the then current duration value."),
     ]
 
     def __init__(self, **config):
         super().__init__(**config)
         self.add_defaults(CheckclockWidget.defaults)
         self.db_path = Path(os.path.expanduser(self.db_path))
+        hooks = config.get("hooks") if config.get("hooks") else {}
         self.checkclock = Checkclock(tick_length=self.update_interval, path=self.db_path, avg_working_time=self.avg_working_time,
-                working_days=self.working_days)
+                working_days=self.working_days, **hooks)
         self.active_color = normalize_color(self.active_color)
         self.done_color = normalize_color(self.done_color)
         self.almost_done_color = normalize_color(self.almost_done_color)
         self.paused_color = normalize_color(self.paused_color)
         self.pause_button = int(self.pause_button)
         self.companions: List[TextBox] = []
+        self.id = random.randint(1000000, 10 * 1000000 - 1)
 
     def new_companion(self) -> TextBox:
         box = TextBox(text=self.text)
@@ -123,4 +128,4 @@ class CheckclockWidget(ThreadedPollText):
                 msg.append("-" * 5)
         msg.append("=" * 24)
         msg.append(f"<b>total balance</b>: {total_diff}")
-        dunstify.run("balance", "\n".join(msg))
+        dunstify.run(f"--replace={self.id}", "balance", "\n".join(msg))

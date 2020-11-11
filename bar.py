@@ -127,6 +127,7 @@ def notify_checkclock_pause(is_paused: bool, _: str):
 
 
 paused_text = "<big>⏸</big>"
+checkclock_id = "--replace=840431"
 checkclock_args = dict(
         update_interval=5,
         paused_text=paused_text,
@@ -138,6 +139,10 @@ checkclock_args = dict(
         done_color=color.GREEN,
         almost_done_color=color.YELLOW,
         working_days="Tue-Fri",
+        avg_working_time=(7*3600 + 45*60),
+        hooks={
+            "on_rollover": lambda _: procs.dunstify(checkclock_id, f"🔄 checkclock"),
+            },
         )
 checkclock_args.update(settings)
 

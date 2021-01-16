@@ -7,11 +7,11 @@ from freezegun import freeze_time
 
 
 def get_yesterday():
-    return datetime.date.today() - datetime.timedelta(days=1)
+    return datetime.date(2021, 1, 19)
 
 
 def get_today():
-    return datetime.date.today()
+    return datetime.date(2021, 1, 20)
 
 
 def test_noprmalize_color():
@@ -102,10 +102,10 @@ def fixed_today():
     return freeze_time(get_today().isoformat())
 
 
-def new_checkclock(tmp_path, *args, **kwargs):
+def new_checkclock(tmp_path, working_days="Mon-Sun", *args, **kwargs):
     path = tmp_path / "test.sqlite"
     with fixed_yesterday():
-        checkclock = MemoryCheckclock(tick_length=1, path=path, working_days="Mon-Sun", avg_working_time=2,
+        checkclock = MemoryCheckclock(tick_length=1, path=path, working_days=working_days, avg_working_time=2,
                 *args, **kwargs)
         checkclock.toggle_paused()
         assert checkclock.duration == 0
@@ -115,6 +115,12 @@ def new_checkclock(tmp_path, *args, **kwargs):
 @pytest.fixture
 def checkclock(tmp_path):
     return new_checkclock(tmp_path)
+
+
+@pytest.fixture
+def checkclock(tmp_path):
+    return new_checkclock(tmp_path)
+
 
 
 def test_get_dates_from_schedule(checkclock: MemoryCheckclock):
@@ -147,7 +153,7 @@ def test_next_day(checkclock: MemoryCheckclock):
 
 def test_get_balance(checkclock: MemoryCheckclock):
     yesterday = get_yesterday()
-    today = datetime.date.today()
+    today = get_today()
     with fixed_yesterday() as ft:
         checkclock.tick()
         ft.tick()

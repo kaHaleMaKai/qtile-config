@@ -6,12 +6,28 @@ from pathlib import Path
 from freezegun import freeze_time
 
 
-def get_yesterday():
+def get_yesterday() -> datetime.date:
     return datetime.date(2021, 1, 19)
 
 
-def get_today():
+@pytest.fixture
+def yesterday() -> datetime.date:
+    return get_yesterday()
+
+
+@pytest.fixture
+def today() -> datetime.date:
     return datetime.date(2021, 1, 20)
+
+
+@pytest.fixture
+def monday() -> datetime.date:
+    return datetime.date(2021, 1, 18)
+
+
+@pytest.fixture
+def sunday() -> datetime.date:
+    return datetime.date(2021, 1, 17)
 
 
 def test_noprmalize_color():
@@ -94,18 +110,14 @@ class MemoryCheckclock(cc.Checkclock):
         return self.con
 
 
-def fixed_yesterday():
-    return freeze_time(get_yesterday().isoformat())
+def fixed(date: datetime.date):
+    return freeze_time(date.isoformat())
 
 
-def fixed_today():
-    return freeze_time(get_today().isoformat())
-
-
-def new_checkclock(tmp_path, working_days="Mon-Sun", *args, **kwargs):
+def new_checkclock(tmp_path, *args, **kwargs):
     path = tmp_path / "test.sqlite"
-    with fixed_yesterday():
-        checkclock = MemoryCheckclock(tick_length=1, path=path, working_days=working_days, avg_working_time=2,
+    with fixed(get_yesterday()):
+        checkclock = MemoryCheckclock(tick_length=1, path=path, avg_working_time=2,
                 *args, **kwargs)
         checkclock.toggle_paused()
         assert checkclock.duration == 0
@@ -117,25 +129,17 @@ def checkclock(tmp_path):
     return new_checkclock(tmp_path)
 
 
-@pytest.fixture
-def checkclock(tmp_path):
-    return new_checkclock(tmp_path)
-
-
-
-def test_get_dates_from_schedule(checkclock: MemoryCheckclock):
-    yesterday = get_yesterday()
-    with fixed_yesterday():
+def test_get_dates_from_schedule(checkclock: MemoryCheckclock, today, yesterday):
+    with fixed(yesterday):
         2 * repeat(checkclock.tick)
         assert checkclock.duration == 2 * checkclock.tick_length
         assert list(checkclock.get_dates_from_schedule()) == []
-    with fixed_today():
+    with fixed(today):
         assert list(checkclock.get_dates_from_schedule()) == [yesterday]
 
 
-def test_next_day(checkclock: MemoryCheckclock):
-    yesterday = get_yesterday()
-    with fixed_yesterday():
+def test_next_day(checkclock: MemoryCheckclock, today, yesterday):
+    with fixed(yesterday):
         assert checkclock.get_duration_from_db() == 0
         checkclock.tick()
         assert checkclock.duration == checkclock.tick_length
@@ -143,18 +147,16 @@ def test_next_day(checkclock: MemoryCheckclock):
         assert checkclock.duration == 2 * checkclock.tick_length
         assert checkclock.get_duration_from_db() == 2
 
-    with fixed_today():
+    with fixed(today):
         assert checkclock.today == yesterday
         checkclock.tick()
-        assert checkclock.today == get_today()
+        assert checkclock.today == today
         assert checkclock.duration == checkclock.tick_length
         assert checkclock.get_duration_from_db() == 1
 
 
-def test_get_balance(checkclock: MemoryCheckclock):
-    yesterday = get_yesterday()
-    today = get_today()
-    with fixed_yesterday() as ft:
+def test_get_balance(checkclock: MemoryCheckclock, today, yesterday):
+    with fixed(yesterday) as ft:
         checkclock.tick()
         ft.tick()
         assert checkclock.duration == checkclock.tick_length
@@ -162,25 +164,31 @@ def test_get_balance(checkclock: MemoryCheckclock):
         assert checkclock.duration == 64 * checkclock.tick_length
         assert checkclock.get_balance(days_back=0, min_duration=0) == 62
 
-    with fixed_today() as ft:
+    with fixed(today) as ft:
         assert checkclock.today == yesterday
         4 * repeat(checkclock.tick, ft.tick)
-        assert checkclock.today == get_today()
+        assert checkclock.today == today
         assert checkclock.duration == 4 * checkclock.tick_length
         assert checkclock.get_balance(days_back=0, min_duration=0) == 2
         assert checkclock.get_balance(days_back=1, min_duration=0) == 62
 
 
-def test_hooks(tmp_path):
+def test_hooks(tmp_path, yesterday):
 
     acc = []
 
     def inc(duration: int) -> None:
         acc.append(duration)
 
-    assert len(acc) == 0
-    checkclock = new_checkclock(tmp_path, on_duration_update=inc)
-    checkclock.tick()
-    assert acc[-1] == checkclock.tick_length
-    19 * repeat(checkclock.tick)
-    assert acc[-1] == 20 * checkclock.tick_length
+    with fixed(yesterday):
+        assert len(acc) == 0
+        checkclock = new_checkclock(tmp_path, on_duration_update=inc)
+        checkclock.tick()
+        assert acc[-1] == checkclock.tick_length
+        19 * repeat(checkclock.tick)
+        assert acc[-1] == 20 * checkclock.tick_length
+
+
+def test_work_after_weekend(tmp_path):
+    checkclock = new_checkclock(tmp_path, working_days="Mon-Fri")
+

@@ -220,32 +220,32 @@ class Checkclock:
         with con:
             con.execute("INSERT INTO schedule (date, time, duration) VALUES (?, ?, ?)",
                     [now.strftime("%F"), now.strftime("%H:%M:%S"), self.tick_length])
-        today = datetime.date.today()
+            today = datetime.date.today()
 
-        if self.today == today and self.work_today:
-            if self.duration % 600 == 0:
-                self.duration = self.get_duration_from_db(con)
+            if self.today == today and self.work_today:
+                if self.duration % 600 == 0:
+                    self.duration = self.get_duration_from_db(con)
+                else:
+                    self.duration += self.tick_length
             else:
-                self.duration += self.tick_length
-        else:
-            self.today = today
-            self.work_today = self.check_work_today(today)
-            if self.work_today:
-                self.duration = self.tick_length
-            else:
-                self.call_hook("on_rollover", self.duration)
-                self.duration = 0
-            min_duration = min(60, self.tick_length)
-            for date in self.get_dates_from_schedule():
-                days_back = (datetime.date.today() - date).days
-                self.compact(days_back=days_back, con=con)
+                self.today = today
+                self.work_today = self.check_work_today(today)
+                if self.work_today:
+                    self.duration = self.tick_length
+                else:
+                    self.call_hook("on_rollover", self.duration)
+                    self.duration = 0
+                min_duration = min(60, self.tick_length)
+                for date in self.get_dates_from_schedule():
+                    days_back = (datetime.date.today() - date).days
+                    self.compact(days_back=days_back, con=con)
 
     def call_hook(self, hook: str, *args, **kwargs) -> None:
         if hook in self.hooks:
             self.hooks[hook](*args, **kwargs)
 
     def check_work_today(self, today: Optional[datetime.date] = None) -> bool:
-        t :datetime.date = today if today else datetime.date.today()
+        t: datetime.date = today if today else datetime.date.today()
         fn: Callable[[Weekday], bool] = lambda w: w.is_same_day(t)
         return any(filter(fn, self.working_days))  # type: ignore  # using more narrow type is OK
 
@@ -270,7 +270,7 @@ class Checkclock:
         return bool(self.dbus_method())
 
     def get_value(self, tick: bool = True) -> int:
-        if not self.work_today:
+        if not self.work_today and not self.check_work_today():
             return self.not_working_state
         if self.paused:
             return self.paused_state
@@ -375,7 +375,6 @@ class Checkclock:
             con.execute(backlog_sql, [date, start.strftime("%T"), end.strftime("%T"), duration])
         con.execute(balance_query, [date])
         con.execute(deletion_query, [date])
-        con.commit()
 
     def get_backlog(self, days_back: int) -> Generator[Tuple[datetime.time, datetime.time, int], None, None]:
         if not days_back:

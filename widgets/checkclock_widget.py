@@ -106,7 +106,7 @@ class CheckclockWidget(ThreadedPollText):
                 yield time_range
 
     def cmd_show_schedule(self) -> None:
-        total_diff = as_hours_and_minutes(sum(self.checkclock.get_balance(days_back=i) for i in range(30)))
+        total_diff = as_hours_and_minutes(sum(self.checkclock.get_balance(days_back=i) for i in range(60)))
 
         msg = [""]
         num_days = 5
@@ -114,8 +114,6 @@ class CheckclockWidget(ThreadedPollText):
         for i in range(num_days, -1, -1):
             if i > 0 and get_previous_date(i) in schedule_dates:
                 prev_date = get_previous_date(days_back=i).isoformat()
-                db_copy = self.db_path.with_suffix(f".copy-{prev_date}.sqlite")
-                shutil.copy2(src=self.db_path, dst=db_copy, follow_symlinks=True)
                 self.checkclock.compact(days_back=i)
             diff = self.checkclock.get_balance(days_back=i)
             if not diff:

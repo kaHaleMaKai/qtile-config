@@ -4,10 +4,21 @@ import checkclock as cc
 import datetime
 from pathlib import Path
 from freezegun import freeze_time
+import locale
+locale.setlocale(locale.LC_ALL, '')
+
+
+def acc_and_inc():
+    acc = []
+
+    def inc(duration: int) -> None:
+        acc.append(duration)
+
+    return acc, inc
 
 
 def get_yesterday() -> datetime.date:
-    return datetime.date(2021, 1, 19)
+    return datetime.date.today() - datetime.timedelta(days=1)
 
 
 @pytest.fixture
@@ -17,17 +28,7 @@ def yesterday() -> datetime.date:
 
 @pytest.fixture
 def today() -> datetime.date:
-    return datetime.date(2021, 1, 20)
-
-
-@pytest.fixture
-def monday() -> datetime.date:
-    return datetime.date(2021, 1, 18)
-
-
-@pytest.fixture
-def sunday() -> datetime.date:
-    return datetime.date(2021, 1, 17)
+    return datetime.date.today()
 
 
 def test_noprmalize_color():
@@ -114,11 +115,14 @@ def fixed(date: datetime.date):
     return freeze_time(date.isoformat())
 
 
-def new_checkclock(tmp_path, *args, **kwargs):
+def new_checkclock(tmp_path, date=None, *args, **kwargs):
     path = tmp_path / "test.sqlite"
-    with fixed(get_yesterday()):
+    date = date if date else get_yesterday()
+    new_kwargs = {**kwargs}
+    new_kwargs.setdefault("working_days", "Mon-Sun")
+    with fixed(date):
         checkclock = MemoryCheckclock(tick_length=1, path=path, avg_working_time=2,
-                *args, **kwargs)
+                *args, **new_kwargs)
         checkclock.toggle_paused()
         assert checkclock.duration == 0
     return checkclock
@@ -174,21 +178,35 @@ def test_get_balance(checkclock: MemoryCheckclock, today, yesterday):
 
 
 def test_hooks(tmp_path, yesterday):
-
-    acc = []
-
-    def inc(duration: int) -> None:
-        acc.append(duration)
-
+    acc, inc = acc_and_inc()
     with fixed(yesterday):
         assert len(acc) == 0
         checkclock = new_checkclock(tmp_path, on_duration_update=inc)
         checkclock.tick()
+        print(checkclock.working_days)
         assert acc[-1] == checkclock.tick_length
         19 * repeat(checkclock.tick)
         assert acc[-1] == 20 * checkclock.tick_length
 
 
-def test_work_after_weekend(tmp_path):
-    checkclock = new_checkclock(tmp_path, working_days="Mon-Fri")
+def test_work_after_weekend(tmp_path, yesterday, today):
+    acc, inc = acc_and_inc()
+    work_day = today.strftime("%a")
+    with fixed(yesterday):
+        checkclock = new_checkclock(tmp_path, date=yesterday, working_days=work_day, on_duration_update=inc)
+        wd = checkclock.working_days
+        assert len(wd) == 1
+        assert cc.Weekday.parse(work_day) == wd
+        assert len(acc) == 1
+        checkclock.tick()
+        assert checkclock.duration == 0
+        assert not checkclock.work_today
+        assert checkclock.get_value(tick=False) == cc.Checkclock.not_working_state
 
+    with fixed(today):
+        # this automatically changes the state to working
+        assert checkclock.get_value() != cc.Checkclock.not_working_state
+        assert checkclock.work_today
+        assert checkclock.work_today
+        assert checkclock.duration == 1
+        assert checkclock.work_today

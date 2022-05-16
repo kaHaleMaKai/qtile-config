@@ -121,6 +121,57 @@ def get_net_throughput():
     return up, down
 
 
+class BorgBackupWidget(CheckAndWarnWidget):
+
+    borg_state_msgs = {
+        CheckState.OK: "has finished",
+        CheckState.WARN: "required",
+        CheckState.ERROR: "has encountered an error",
+        CheckState.IN_PROGRESS: "has started",
+    }
+
+    dunstify_id = 398437
+
+    def __init__(self, **config) -> None:
+        super().__init__(**config)
+        self.cache_file = Path("/home/lars/.cache/backup-with-borg-state")
+        cache_dir = cache_file.parent
+        if not cache_dir.exists():
+            cache_dir.mkdir()
+
+    def check(self) -> CheckState:
+        if not cache_file.exists():
+            return CheckState.WARN
+        mtime = cache_file.lstat().st_mtime
+        dt = datetime.datetime.fromtimestamp(mtime)
+        if dt.date() < datetime.date.today():
+            return CheckState.WARN
+        with cache_file.open("r") as f:
+            text = f.read().strip()
+        if text in ("in-progress", "pruning"):
+            return CheckState.IN_PROGRESS
+        elif text == "success":
+            return CheckState.OK
+        else:
+            return CheckState.ERROR
+
+    def run(self) -> None:
+        procs.dunstify("starting borg backup")
+        procs.borg_backup()
+
+    def cmd_reset(self) -> None:
+
+
+    def on_state_changed(self, current: Optional[CheckState], next: CheckState) -> None:
+        if current == next or not current:
+            return
+        urgency = "critical" if next is CheckState.ERROR else "normal"
+        procs.dunstify(f"--replace={self.dunstify_id}", "-u", urgency, "borg backup", self.borg_state_msgs[next])
+
+
+borg_widget = BorgBackupWidget(fontsize=12, update_interval=1)
+
+
 def notify_checkclock_pause(is_paused: bool, _: str):
     p = "pause" if is_paused else "resume"
     procs.dunstify(f"{p} checkclock")

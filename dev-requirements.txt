@@ -1,0 +1,4 @@
+freezegun
+pywal
+PyYAML
+Jinja2

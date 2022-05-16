@@ -22,7 +22,7 @@ dunstrc:
       fg: "#ff0000"
       timeout:  0
 
-compton.conf:
+picom.conf:
   menu_opacity: 0.98
   shadow: true
   shadow_radius: 10
@@ -31,8 +31,7 @@ compton.conf:
   blur_kernel: 11x11gaussian
   fading: true
   fade_in_step: 0.12
-  alpha_step: 0.01
-  backend: xrender
+  backend: glx
   shadow_excludes:
     - name: Notification
     - class: Conkey

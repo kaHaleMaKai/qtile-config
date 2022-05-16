@@ -2,11 +2,15 @@ import os
 import math
 import psutil
 import sqlite3
+from typing import Optional, Any
 from libqtile import bar, widget
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
 from widgets.checkclock_widget import CheckclockWidget
+from widgets.check_and_warn import CheckAndWarnWidget, CheckState
+
+# from widgets.contextmenu import ContextMenu, SpawnedMenu
 import datetime
 import util
 import color
@@ -29,7 +33,7 @@ class ArrowGraph(_GenPollText):
         ("colors", ("005000", "909000", "e00000"), "4-tuple of colors to use for graph"),
         ("max", 100, "maximum value for graph (greater values will be clipped)"),
         ("use_diff", False, "if True, then display (current - last) value, else only current"),
-        ("up_first", True, "if True, display up-arrow first, then down-arrow")
+        ("up_first", True, "if True, display up-arrow first, then down-arrow"),
     ]
 
     def __init__(self, **config):
@@ -67,7 +71,7 @@ class DotGraph(_GenPollText):
     defaults = [
         ("colors", ("00b800", "c0c000", "b80000"), "4-tuple of colors to use for graph"),
         ("max", 100, "maximum value for graph (greater values will be clipped)"),
-        ("graph_length", 4, "number of previous plus current values to be displayed")
+        ("graph_length", 4, "number of previous plus current values to be displayed"),
     ]
     previous_dots = [0x40, 0x40 + 0x4, 0x40 + 0x4 + 0x2, 0x40 + 0x4 + 0x2 + 0x1]
     current_dots = [0x80, 0x80 + 0x20, 0x80 + 0x20 + 0x10, 0x80 + 0x20 + 0x10 + 0x8]
@@ -88,8 +92,8 @@ class DotGraph(_GenPollText):
         return max(0, min(3, math.floor(value * len(self.colors) / self.max)))
 
     def as_dots(self, *values):
-        dots = "".join(self.single_dot(*values[i:i+2]) for i in range(0, self.graph_length-1, 2))
-        avg = sum(values)/len(values)
+        dots = "".join(self.single_dot(*values[i : i + 2]) for i in range(0, self.graph_length - 1, 2))
+        avg = sum(values) / len(values)
         c = color.gradient(value=avg, max_value=self.max, colors=self.colors, scaling=1.2)
         return f"<tt><span foreground='#{c}'>{dots}</span></tt>"
 
@@ -105,10 +109,15 @@ def space():
 
 def get_num_procs():
     number = sum(1 for _ in psutil.process_iter())
-    c = color.gradient(value=number-250, max_value=200,
-                       colors=(color.hex_to_dec(color.BRIGHT_GREEN),
-                               color.hex_to_dec(color.BRIGHT_ORANGE),
-                               color.hex_to_dec(color.BRIGHT_RED)))
+    c = color.gradient(
+        value=number - 250,
+        max_value=200,
+        colors=(
+            color.hex_to_dec(color.BRIGHT_GREEN),
+            color.hex_to_dec(color.BRIGHT_ORANGE),
+            color.hex_to_dec(color.BRIGHT_RED),
+        ),
+    )
     return f"<span foreground='#{c}'>{number}</span>"
 
 
@@ -132,21 +141,21 @@ class BorgBackupWidget(CheckAndWarnWidget):
 
     dunstify_id = 398437
 
-    def __init__(self, **config) -> None:
+    def __init__(self, **config: Any) -> None:
         super().__init__(**config)
         self.cache_file = Path("/home/lars/.cache/backup-with-borg-state")
-        cache_dir = cache_file.parent
+        cache_dir = self.cache_file.parent
         if not cache_dir.exists():
             cache_dir.mkdir()
 
     def check(self) -> CheckState:
-        if not cache_file.exists():
+        if not self.cache_file.exists():
             return CheckState.WARN
-        mtime = cache_file.lstat().st_mtime
+        mtime = self.cache_file.lstat().st_mtime
         dt = datetime.datetime.fromtimestamp(mtime)
         if dt.date() < datetime.date.today():
             return CheckState.WARN
-        with cache_file.open("r") as f:
+        with self.cache_file.open("r") as f:
             text = f.read().strip()
         if text in ("in-progress", "pruning"):
             return CheckState.IN_PROGRESS
@@ -158,9 +167,11 @@ class BorgBackupWidget(CheckAndWarnWidget):
     def run(self) -> None:
         procs.dunstify("starting borg backup")
         procs.borg_backup()
+        self.update(text=self.poll(state=CheckState.IN_PROGRESS))
 
     def cmd_reset(self) -> None:
-
+        if self.cache_file.exists():
+            self.cache_file.unlink()
 
     def on_state_changed(self, current: Optional[CheckState], next: CheckState) -> None:
         if current == next or not current:
@@ -169,7 +180,7 @@ class BorgBackupWidget(CheckAndWarnWidget):
         procs.dunstify(f"--replace={self.dunstify_id}", "-u", urgency, "borg backup", self.borg_state_msgs[next])
 
 
-borg_widget = BorgBackupWidget(fontsize=12, update_interval=1)
+borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10)
 
 
 def notify_checkclock_pause(is_paused: bool, _: str):
@@ -180,27 +191,28 @@ def notify_checkclock_pause(is_paused: bool, _: str):
 paused_text = "<big>⏸</big>"
 checkclock_id = "--replace=840431"
 checkclock_args = dict(
-        update_interval=5,
-        paused_text=paused_text,
-        time_format="%k:%M",
-        paused_color=color.MID_ORANGE,
-        active_color=color.RED,
-        default_text=paused_text,
-        pause_button=3,
-        done_color=color.GREEN,
-        almost_done_color=color.YELLOW,
-        working_days="Tue-Fri",
-        avg_working_time=(7*3600 + 45*60),
-        hooks={
-            "on_rollover": lambda _: procs.dunstify(checkclock_id, f"🔄 checkclock"),
-            },
-        )
+    update_interval=5,
+    paused_text=paused_text,
+    time_format="%k:%M",
+    paused_color=color.MID_ORANGE,
+    active_color=color.RED,
+    default_text=paused_text,
+    pause_button=3,
+    done_color=color.GREEN,
+    almost_done_color=color.YELLOW,
+    working_days="Mon-Sun",
+    avg_working_time=(7 * 3600 + 45 * 60),
+    hooks={
+        "on_rollover": lambda _: procs.dunstify(checkclock_id, f"🔄 checkclock"),
+    },
+)
 checkclock_args.update(settings)
 
 if util.in_debug_mode:
     checkclock_args["db_path"] = "/tmp/checkclock.sqlite"
 
 checkclock_widget = CheckclockWidget(**checkclock_args)
+
 
 def get_bar(screen_idx):
     is_primary = screen_idx == 0
@@ -227,11 +239,7 @@ def get_bar(screen_idx):
 
     if util.num_screens > 1:
         current_screen = widget.CurrentScreen(
-            active_text="✔",
-            inactive_text="",
-            active_color=color.BRIGHT_ORANGE,
-            inactive_color=color.BLACK,
-            **settings
+            active_text="✔", inactive_text="", active_color=color.BRIGHT_ORANGE, inactive_color=color.BLACK, **settings
         )
         widgets.append(current_screen)
 
@@ -258,6 +266,7 @@ def get_bar(screen_idx):
     widgets.append(task_list)
 
     if is_primary:
+        widgets.append(borg_widget)
         widgets.append(checkclock_widget)
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
     else:
@@ -266,39 +275,37 @@ def get_bar(screen_idx):
     widgets.append(space())
 
     volume = widget.Volume(
-        cardid=0,
-        device=None,
-        theme_path="/usr/share/icons/HighContrast/256x256",
-        volume_app="pavucontrol",
-        **settings
+        cardid=0, device=None, theme_path="/usr/share/icons/HighContrast/256x256", volume_app="pavucontrol", **settings
     )
     widgets.append(volume)
     caps_lock = CapsLockIndicator(send_notifications=is_primary, **settings)
     widgets.append(caps_lock)
 
-
     def run_htop(qtile):
         qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
 
-
-    cpu_graph = DotGraph(func=psutil.cpu_percent, max=100, update_interval=1,
-            mouse_callbacks={"Button1": run_htop}, **settings)
+    cpu_graph = DotGraph(
+        func=psutil.cpu_percent, max=100, update_interval=1, mouse_callbacks={"Button1": run_htop}, **settings
+    )
     widgets.append(cpu_graph)
 
-    net_graph = ArrowGraph(func=get_net_throughput, max=(1 << 20), update_interval=1,
-            use_diff=True, up_first=False, **settings)
+    net_graph = ArrowGraph(
+        func=get_net_throughput, max=(1 << 20), update_interval=1, use_diff=True, up_first=False, **settings
+    )
     widgets.append(net_graph)
 
-    num_procs = widget.GenPollText(func=get_num_procs, update_interval=2)
+    # menu = SpawnedMenu("num_procs", {"a": lambda qtile: print("hello")}, min_width=10)
+
+    num_procs = widget.GenPollText(
+        func=get_num_procs,
+        update_interval=2,
+        # mouse_callbacks={"Button3": menu.show}
+    )
     widgets.append(num_procs)
 
-    clock = widget.Clock(format=' %Y-%m-%d %H:%M', **settings)
+    clock = widget.Clock(format=" %Y-%m-%d %H:%M", **settings)
     widgets.append(clock)
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
     widgets.append(layout)
 
-    return bar.Bar(
-        widgets=widgets,
-        size=26,
-        opacity=0.9
-    )
+    return bar.Bar(widgets=widgets, size=26, opacity=0.9)

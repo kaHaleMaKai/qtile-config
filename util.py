@@ -1,10 +1,11 @@
 import os
+import re
 import yaml
 import pywal
 import procs
 import subprocess
 from itertools import chain
-from typing import Tuple
+from typing import Tuple, Iterable, Dict, Union, TypedDict
 from libqtile.core.manager import Qtile
 from libqtile.window import Window
 from libqtile.backend.x11.xcbq import Window as XWindow
@@ -18,39 +19,60 @@ import templates
 from color import complement, add_hashtag
 
 
+class ScreenDict(TypedDict):
+    _primary: str
+    screens: Dict[str, Dict[str, int]]
+
+
 in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
 group_dict = {name: Group(name) for name in "123456789abcdef"}
 groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
+laptop_display = "eDP-1"
 
 
-def get_resolutions():
-    import re
+def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
+    d: ScreenDict = {"_primary": "", "screens": {}}
+    for line in lines:
+        if not line or line.startswith("Screen ") or "disconnected" in line or line.startswith(" "):
+            continue
+        is_primary = "primary" in line
+        m = re.match(
+            r"(?P<monitor>\S+)\s+connected\s+(primary\s+)?(?P<width>\d+)x(?P<height>\d+)+(?P<xoffset>\d+)+(?P<yoffset>\d+)",
+            line,
+        )
+        if not m:
+            raise ValueError(f"cannot parse line '{line}'")
+        mon = m.group("monitor")
+        data = {name: int(m.group(name)) for name in ("width", "height", "xoffset", "yoffset")}
+        data["is_primary"] = is_primary
+        d["screens"][mon] = data
+        if is_primary:
+            d["_primary"] = mon
+    return d
+
+
+def get_screens() -> ScreenDict:
     import subprocess
-    cmd = ['xrandr']
-    cmd2 = ['grep', '*']
+
+    cmd = ["xrandr"]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(cmd2, stdin=p.stdout, stdout=subprocess.PIPE)
-    p.stdout.close()
 
-    lines = [line.split()[0] for line in p2.communicate()[0].split(b"\n") if line]
-    resolutions = []
-    for res in lines:
-        w, h = re.sub("_.*", "", res.decode("utf-8")).split("x")
-        resolutions.append({"width": int(w), "height": int(h)})
+    lines = [line.decode("utf-8") for line in p.communicate()[0].split(b"\n") if line]
+    screens = _get_screens_helper(lines)
 
-    return resolutions
+    return screens
 
 
-def is_laptop_connected():
-    return filter(lambda r: r["width"] == 1366 and r["height"] == 768,  get_resolutions())
+screens = get_screens()
+res = [{"width": s["width"], "height": s["height"]} for s in screens["screens"].values()]
+num_screens = len(screens["screens"])
 
 
-res = get_resolutions()
-num_screens = len(res)
+def is_laptop_connected() -> bool:
+    return laptop_display in screens["screens"]
 
 
 class RingBuffer:
-
     def __init__(self, size: int, default=None):
         self.size = size
         self.buffer = [default] * size
@@ -92,14 +114,14 @@ group_history = RingBuffer(100)
 
 
 def go_to_group(group):
-
     @lazy.function
     def f(qtile: Qtile):
         if len(qtile.screens) == 2 and group.name in "abcdef":
             screen = 1
         else:
             screen = 0
-        group_history.add(group)
+        if group.name:
+            group_history.add(group)
         qtile.cmd_to_screen(screen)
         qtile.groups_map[group.name].cmd_toscreen()
 
@@ -115,7 +137,6 @@ def get_group_and_screen_idx(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
 
 
 def next_group() -> LazyCall:
-
     @lazy.function
     def f(qtile: Qtile):
         global group_history
@@ -128,7 +149,6 @@ def next_group() -> LazyCall:
 
 
 def prev_group() -> LazyCall:
-
     @lazy.function
     def f(qtile):
         global group_history
@@ -141,7 +161,6 @@ def prev_group() -> LazyCall:
 
 
 def history_back() -> LazyCall:
-
     @lazy.function
     def f(qtile: Qtile):
         group = group_history.backward()
@@ -159,7 +178,6 @@ def history_back() -> LazyCall:
 
 
 def history_forward() -> LazyCall:
-
     @lazy.function
     def f(qtile: Qtile):
         group = group_history.forward()
@@ -184,7 +202,7 @@ def move_window_to_offset_group(offset: int) -> LazyCall:
     @lazy.function
     def f(qtile: Qtile):
         current = qtile.current_group.name
-        next , _ = get_group_and_screen_idx(qtile, offset)
+        next, _ = get_group_and_screen_idx(qtile, offset)
         # if (offset < 0 and next.name < current) or (offset > 0 and next.name > current):
         qtile.current_window.togroup(next.name)
 
@@ -263,7 +281,7 @@ def get_default_vars(**overrides):
         "defaults": {
             "num_screens": num_screens,
             "res": res,
-            "in_debug_mode": in_debug_mode
+            "in_debug_mode": in_debug_mode,
         },
         "wal": get_wal_colors(),
     }
@@ -271,56 +289,84 @@ def get_default_vars(**overrides):
     return default_vars
 
 
-def render_dunstrc(**overrides):
+def render_dunstrc(**overrides) -> None:
     if not in_debug_mode:
-        templates.render("dunstrc", "~/.config/dunst", keep_comments=False,
-                         keep_empty=False, overrides=get_default_vars(**overrides))
+        templates.render(
+            "dunstrc",
+            "~/.config/dunst",
+            keep_comments=False,
+            keep_empty=False,
+            overrides=get_default_vars(**overrides),
+        )
 
 
-def render_compton_conf(**overrides):
+def render_picom_config(**overrides) -> None:
     if not in_debug_mode:
-        templates.render("compton.conf", "~/.config", keep_empty=True,
-                         overrides=get_default_vars(**overrides))
+        templates.render(
+            "picom.conf",
+            "~/.config",
+            keep_empty=True,
+            overrides=get_default_vars(**overrides),
+        )
 
 
-def render_terminalrc(**overrides):
+def render_terminalrc(**overrides) -> None:
     if not in_debug_mode:
         colors = get_wal_colors(**overrides)
-        templates.render("terminalrc", "~/.config/xfce4/terminal", keep_empty=True,
-                         overrides=get_default_vars(**colors))
+        templates.render(
+            "terminalrc",
+            "~/.config/xfce4/terminal",
+            keep_empty=True,
+            overrides=get_default_vars(**colors),
+        )
 
 
-def restart_qtile(qtile: Qtile):
+def restart_qtile(qtile: Qtile) -> None:
+    print("restarting qtile")
+    print("running feh")
     procs.feh()
+    print("setting opacities")
     for group in qtile.groups:
         for window in group.windows:
             try:
                 window.opacity = window._full_opacity
             except AttributeError:
                 pass
+    print("executing cmd_restart")
     qtile.cmd_restart()
     render_dunstrc()
-    render_compton_conf()
+    render_picom_config()
     render_terminalrc()
+    procs.resume_dunst()
 
 
 @lazy.function
-def start_distraction_free_mode(qtile: Qtile):
+def start_distraction_free_mode(qtile: Qtile) -> None:
     procs.pause_dunst()
 
 
 @lazy.function
-def stop_distraction_free_mode(qtile: Qtile):
+def stop_distraction_free_mode(qtile: Qtile) -> None:
     procs.resume_dunst()
     procs.dunstify("including distractions again")
 
 
 @lazy.function
-def update_path(qtile: Qtile):
+def update_path(qtile: Qtile) -> None:
     path_file = os.path.join(os.path.expanduser("$"), ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
-    subprocess.run(f"/usr/bin/zsh -c 'source {path_file}'", shell=True, env={"QTILE_EXPORT_PATH": tmp_file})
+    subprocess.run(
+        f"/usr/bin/zsh -c 'source {path_file}'",
+        shell=True,
+        env={"QTILE_EXPORT_PATH": tmp_file},
+    )
     with open(tmp_file, "r") as f:
         path_env = f.read()
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
+
+
+@lazy.function
+def lock_screen(qtile: Qtile) -> None:
+    procs.screensaver_cmd()
+    procs.resume_dunst()

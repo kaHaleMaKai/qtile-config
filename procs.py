@@ -7,7 +7,16 @@ class Proc:
 
     timeout = 2
 
-    def __init__(self, *args, name=None, default_args=None, default_arg=None, stop=None, bg=False, shell=False):
+    def __init__(
+        self,
+        *args,
+        name=None,
+        default_args=None,
+        default_arg=None,
+        stop=None,
+        bg=False,
+        shell=False,
+    ):
         if default_arg and default_args:
             raise ValueError("specify either of 'default_arg' or 'default_args'")
         if default_arg:
@@ -26,23 +35,24 @@ class Proc:
         if not default_arg and not default_args:
             default_args = self.default_args
         elif default_arg:
-            default_args = (default_arg, )
+            default_args = (default_arg,)
         else:
             default_args = tuple(default_args)
         return Proc(
-            *self.args, *args,
+            *self.args,
+            *args,
             stop=stop if stop else self._stop,
-            default_args=default_args
+            default_args=default_args,
         )
 
     def __getitem__(self, *args):
         return self.derive(*args)
 
-    def __call__(self, *args):
+    def __call__(self, *args, **kwargs):
         if self.bg:
-            return self.run_in_bg(*args)
+            return self.run_in_bg(*args, **kwargs)
         else:
-            return self.run(*args)
+            return self.run(*args, **kwargs)
 
     def get_args(self, *args):
         extra_args = args if args else self.default_args
@@ -56,9 +66,9 @@ class Proc:
         except Exception as e:
             print(f"error while executing backgrounded command {[proc_args]}: {e.message}")
 
-    def run(self, *args, timeout=None):
+    def run(self, *args, timeout=-1):
         proc_args = self.get_args(*args)
-        timeout = timeout if timeout is not None else self.timeout
+        timeout = timeout if timeout != -1 else self.timeout
         print(f"running {proc_args}")
         try:
             p = subprocess.run(proc_args, timeout=timeout, text=True, shell=self.shell)
@@ -87,11 +97,11 @@ feh = Proc("feh", "--bg-fill", default_arg=os.path.expanduser("~/.wallpaper"))
 setxkbmap = Proc("setxkbmap", default_args=("de", "deadacute"), shell=True)
 unclutter = Proc("unclutter", "-root", "-idle", default_arg="3", bg=True)
 polkit_agent = Proc("/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1", bg=True)
-xcompmgr = Proc("xcompmgr", bg=True)
-compton = Proc("compton", bg=True)
+picom = Proc("picom", bg=True)
 xfce4_power_manager = Proc("xfce4-power-manager", bg=True)
 screensaver = Proc("cinnamon-screensaver", bg=True)
-screensaver_cmd = Proc("cinnamon-screensaver-command", default_arg="--lock", name="lock cmd")
+screensaver_cmd = Proc("/home/lars/bin/lock-screen", name="lock_cmd")
+# screensaver_cmd = Proc("cinnamon-screensaver-command", default_arg="--lock", name="lock cmd")
 xss_lock = Proc("xss-lock", "-l", "-v", "--", default_args=(screensaver_cmd.get_args()), bg=True)
 volti = Proc("volti", bg=True)
 shiftred = Proc("shiftred", default_arg="load-config")
@@ -104,12 +114,14 @@ rofi_pass = Proc("rofi-pass")
 terminal = Proc("xfce4-terminal", default_args=["-e", "zsh"])
 rofimoji = Proc("rofimoji")
 volume = Proc("configure-volume")
-systemctl = Proc("systemctl", "--user", "restart")
+systemctl_user = Proc("systemctl", "--user", "restart")
 pause_dunst = Proc("killall", "-SIGUSR1", "dunst")
 resume_dunst = Proc("killall", "-SIGUSR2", "dunst")
-dunstify = Proc("dunstify")
 bluetooth = Proc("blueman-applet", bg=True)
 nextcloud_sync = Proc("nextcloud", bg=True)
 signal_desktop = Proc("signal-desktop", bg=True)
 kde_connect = Proc("kdeconnect-indicator", bg=True)
 dunstify = Proc("dunstify")
+borg_backup = Proc("pkexec", "backup-with-borg", "start", bg=True)
+systemctl = Proc("pkexec", "systemctl", bg=True)
+fakecam = Proc("fakecam", default_args=["start"], bg=True)

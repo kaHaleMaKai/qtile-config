@@ -1,11 +1,6 @@
 from libqtile import hook
 from libqtile.window import Window
 
-# all values that are 0.93 were before 0.97
-# but qtile doesn't resolve opacities
-# with sufficient granularity, thus we
-# need to lower it
-
 full_opacities = {
     "class": {
         "msgcompose",
@@ -38,26 +33,27 @@ full_opacities = {
         "gtkfilechooserdialog",
         "alarmwindow",
         "pop-up",
-        },
+    },
     "name": {
         "pinentry",
         "event tester",
         "tbsync account manager",
         "calendar - mozilla thunderbird",
-        },
+    },
     "type": set(),
 }
 
 partial_opacities = {
     "class": {
-        "xfce4-terminal":            0.92,
-        "thunderbird":               0.97,
-        "gajim":                     0.97,
-        "jetbrains-idea-ce":         0.97,
-        "jetbrains-pycharm-ce":      0.97,
-        "dbeaver":                   0.97,
-        "spotify":                   0.97,
-        "code":                      0.97,
+        "xfce4-terminal": 0.92,
+        "neovide": 0.92,
+        "thunderbird": 0.97,
+        "gajim": 0.97,
+        "jetbrains-idea-ce": 0.97,
+        "jetbrains-pycharm-ce": 0.97,
+        "dbeaver": 0.97,
+        "spotify": 0.97,
+        "code": 0.97,
         "microsoft teams - preview": 0.97,
     },
     "role": {},
@@ -66,7 +62,7 @@ partial_opacities = {
 }
 
 
-def set_opacities(window: Window, dim: bool = True, overwrite: bool = False):
+def set_opacities(window: Window, dim: bool = True, overwrite: bool = False) -> None:
     if hasattr(window, "_full_opacity") and not overwrite:
         return
     window._full_opacity = window.opacity
@@ -101,11 +97,12 @@ def get_opacity_spec(window: Window, cls=None, name=None, role=None, type=None):
         classes, name, role, type = get_specs(window)
 
     has_full_opacity = (
-            name in full_opacities["name"] or
-            role in full_opacities["role"] or
-            type in full_opacities["type"] or
-            classes[0] in full_opacities["class"] or
-            classes[1] in full_opacities["class"])
+        name in full_opacities["name"]
+        or role in full_opacities["role"]
+        or type in full_opacities["type"]
+        or classes[0] in full_opacities["class"]
+        or classes[1] in full_opacities["class"]
+    )
     if has_full_opacity:
         return {"full": True, "value": 1.0}
 

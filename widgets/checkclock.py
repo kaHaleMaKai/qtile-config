@@ -1,14 +1,16 @@
 import os
 import re
+
 try:
     import dbus  # type: ignore  # no stub present
+
     has_dbus = True
 except ImportError:
     has_dbus = False
 import sqlite3
 import datetime
 from pathlib import Path
-from typing import Optional, Tuple, List, Generator, Callable, Any, Dict
+from typing import Optional, Tuple, List, Generator, Callable, Any, Dict, cast
 from enum import Enum
 
 
@@ -106,7 +108,7 @@ class Weekday(Enum):
                 start, end = days
                 idx0 = cls[start].value
                 idx1 = cls[end].value
-                for i in range(min(idx0, idx1), max(idx0, idx1)+1):
+                for i in range(min(idx0, idx1), max(idx0, idx1) + 1):
                     weekdays.add(cls(i))
         result = sorted(weekdays, key=lambda k: k.value)
         if not result:
@@ -122,24 +124,30 @@ class Checkclock:
     paused_state = -1
     not_working_state = -2
 
-    def __init__(self,
-            tick_length: int,
-            path: Path,
-            avg_working_time: int = 8*60*60,
-            working_days: str = "Mon-Fri",
-            ro: bool = False,
-            on_duration_update: Optional[Callable[[int], Any]] = None,
-            on_tick: Optional[Callable[[int], Any]] = None,
-            on_pause: Optional[Callable[[int], Any]] = None,
-            on_resume: Optional[Callable[[int], Any]] = None,
-            on_rollover: Optional[Callable[[int], Any]] = None,
-            ) -> None:
+    def __init__(
+        self,
+        tick_length: int,
+        path: Path,
+        avg_working_time: int = 8 * 60 * 60,
+        working_days: str = "Mon-Fri",
+        ro: bool = False,
+        min_duration: Optional[int] = None,
+        on_duration_update: Optional[Callable[[int], Any]] = None,
+        on_tick: Optional[Callable[[int], Any]] = None,
+        on_pause: Optional[Callable[[int], Any]] = None,
+        on_resume: Optional[Callable[[int], Any]] = None,
+        on_rollover: Optional[Callable[[int], Any]] = None,
+    ) -> None:
 
         self.working_days = Weekday.parse(working_days)
         self.work_today = self.check_work_today()
         if has_dbus:
-            proxy_object = dbus.SessionBus().get_object("org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver")
-            self.dbus_method = dbus.Interface(proxy_object, "org.cinnamon.ScreenSaver").GetActive
+            proxy_object = dbus.SessionBus().get_object(
+                "org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver"
+            )
+            self.dbus_method = dbus.Interface(
+                proxy_object, "org.cinnamon.ScreenSaver"
+            ).GetActive
         else:
             self.dbus_method = lambda: False
         self.path = path
@@ -148,6 +156,7 @@ class Checkclock:
         self.avg_working_time = avg_working_time
         self.ro = ro
         self._duration = 0
+        self.min_duration = min_duration
 
         self.hooks: Dict[Callable[[Any, ...], Any]] = {}
         if on_duration_update:
@@ -184,10 +193,14 @@ class Checkclock:
         if not self.path.exists():
             con = self.get_connection()
             with con:
-                con.execute("CREATE TABLE schedule (date DATE, time TIME, duration INTEGER)")
+                con.execute(
+                    "CREATE TABLE schedule (date DATE, time TIME, duration INTEGER)"
+                )
                 con.execute("CREATE INDEX date_idx ON schedule (date)")
                 con.execute("CREATE TABLE paused (state bool)")
-                con.execute("CREATE TABLE backlog (date DATE, start TIME, end TIME, duration INTEGER)")
+                con.execute(
+                    "CREATE TABLE backlog (date DATE, start TIME, end TIME, duration INTEGER)"
+                )
                 con.execute("CREATE INDEX date_backlog_idx ON backlog (date)")
                 con.execute("CREATE TABLE balance (date DATE, seconds_worked INTEGER)")
                 con.execute("CREATE UNIQUE INDEX date_balance_idx ON balance (date)")
@@ -202,8 +215,10 @@ class Checkclock:
     def get_duration_from_db(self, con: MaybeConnection = None) -> int:
         con = con or self.get_connection()
         cur = con.cursor()
-        cur.execute("SELECT Coalesce(Sum(duration), 0) AS duration FROM schedule WHERE date = ?",
-                [datetime.date.today()])
+        cur.execute(
+            "SELECT Coalesce(Sum(duration), 0) AS duration FROM schedule WHERE date = ?",
+            [datetime.date.today()],
+        )
         row = cur.fetchone()
         return row["duration"]
 
@@ -218,8 +233,10 @@ class Checkclock:
         con = self.get_connection()
         now = datetime.datetime.now()
         with con:
-            con.execute("INSERT INTO schedule (date, time, duration) VALUES (?, ?, ?)",
-                    [now.strftime("%F"), now.strftime("%H:%M:%S"), self.tick_length])
+            con.execute(
+                "INSERT INTO schedule (date, time, duration) VALUES (?, ?, ?)",
+                [now.strftime("%F"), now.strftime("%H:%M:%S"), self.tick_length],
+            )
             today = datetime.date.today()
 
             if self.today == today and self.work_today:
@@ -252,7 +269,9 @@ class Checkclock:
     def get_dates_from_schedule(self) -> Generator[datetime.date, None, None]:
         con = self.get_connection()
         cur = con.cursor()
-        cur.execute("SELECT distinct date from schedule WHERE date < ?", [datetime.date.today()])
+        cur.execute(
+            "SELECT distinct date from schedule WHERE date < ?", [datetime.date.today()]
+        )
         for row in cur:
             yield datetime.date.fromisoformat(row["date"])
 
@@ -280,7 +299,9 @@ class Checkclock:
             self.tick()
         return self.duration
 
-    def get_balance(self, days_back: int = 0, min_duration: int = 600) -> int:
+    def get_duration_from_backlog(
+        self, days_back: int = 0, min_duration: int = 600
+    ) -> int:
         if not days_back:
             query = """
                 SELECT
@@ -311,12 +332,13 @@ class Checkclock:
             rows = con.execute(query, params)
             if not rows.rowcount:
                 return 0
-            if (x := rows.fetchone()) and (diff := x[0]):
-                return diff - self.avg_working_time
+            if (x := rows.fetchone()) and (d := x[0]):
+                return cast(int, d)
             return 0
 
-    def merge_durations(self, days_back:int,
-            con: MaybeConnection = None) -> Generator[Tuple[datetime.date, datetime.date], None, None]:
+    def merge_durations(
+        self, days_back: int, con: MaybeConnection = None
+    ) -> Generator[Tuple[datetime.date, datetime.date], None, None]:
         merge_threshold = as_delta(self.tick_length)
         min_duration = max(self.tick_length, 60)
         con = con or self.get_connection()
@@ -324,7 +346,10 @@ class Checkclock:
         prev_duration = None
 
         day = get_previous_date(days_back=days_back)
-        for row in cur.execute("""SELECT date, time, duration FROM schedule WHERE date = ? ORDER BY time""", [day]):
+        for row in cur.execute(
+            """SELECT date, time, duration FROM schedule WHERE date = ? ORDER BY time""",
+            [day],
+        ):
             start = as_datetime(row["date"], row["time"])
             end = start + as_delta(row["duration"])
             if not prev_duration:
@@ -332,7 +357,6 @@ class Checkclock:
                 continue
 
             prev_start, prev_end = prev_duration
-            duration = as_delta(row["duration"])
 
             if prev_end + merge_threshold >= start:
                 merged_end = max(prev_end, end)
@@ -341,15 +365,27 @@ class Checkclock:
                 if (prev_end - prev_start).total_seconds() > min_duration:
                     yield prev_duration
                 prev_duration = (start, end)
-        if prev_duration and (prev_duration[1] - prev_duration[0]).total_seconds() > min_duration:
+        if (
+            prev_duration
+            and (prev_duration[1] - prev_duration[0]).total_seconds() > min_duration
+        ):
             yield prev_duration
-
 
     def compact(self, days_back: int, con: MaybeConnection = None) -> None:
         if days_back <= 0:
-            raise ValueError(f"bad number for days_back. got: {days_back}. expected: days_back >= 1")
+            raise ValueError(
+                f"bad number for days_back. got: {days_back}. expected: days_back >= 1"
+            )
 
         date = get_previous_date(days_back)
+        sum_query = """
+        SELECT
+          SUM(duration) AS duration
+        FROM
+          schedule
+        WHERE
+          date = ?
+        """
         backlog_sql = """
         INSERT INTO backlog (date, start, end, duration)
         VALUES (?, ?, ?, ?)
@@ -361,24 +397,31 @@ class Checkclock:
         """
         balance_query = """
         INSERT INTO balance (date, seconds_worked)
-        SELECT
-          date,
-          Sum(duration)
-        FROM
-          backlog
-        WHERE
-          date = ?
+        VALUES (?, ?)
         """
         con = con or self.get_connection()
-        for start, end in self.merge_durations(days_back):
-            duration = int((end - start).total_seconds())
-            con.execute(backlog_sql, [date, start.strftime("%T"), end.strftime("%T"), duration])
-        con.execute(balance_query, [date])
+        cur = con.cursor()
+        cur.execute(sum_query, [date])
+        total_duration = cur.fetchone()["duration"]
+        cur.close()
+        # only store duration into backlog
+        if not total_duration or total_duration >= self.min_duration:
+            for start, end in self.merge_durations(days_back):
+                duration = int((end - start).total_seconds())
+                con.execute(
+                    backlog_sql,
+                    [date, start.strftime("%T"), end.strftime("%T"), duration],
+                )
+            con.execute(balance_query, [date, total_duration])
         con.execute(deletion_query, [date])
 
-    def get_backlog(self, days_back: int) -> Generator[Tuple[datetime.time, datetime.time, int], None, None]:
+    def get_backlog(
+        self, days_back: int
+    ) -> Generator[Tuple[datetime.time, datetime.time, int], None, None]:
         if not days_back:
-            raise ValueError(f"bad argument for days_back. expteded: days_back > 0. got: {days_back}")
+            raise ValueError(
+                f"bad argument for days_back. expteded: days_back > 0. got: {days_back}"
+            )
         date = get_previous_date(days_back)
         query = """
         SELECT
@@ -392,15 +435,28 @@ class Checkclock:
         """
         con = self.get_connection()
         for start, end, duration in con.execute(query, [date]):
-            yield (datetime.time.fromisoformat(start),
-                    datetime.time.fromisoformat(end),
-                    duration)
+            yield (
+                datetime.time.fromisoformat(start),
+                datetime.time.fromisoformat(end),
+                duration,
+            )
 
 
 class ReadOnlyCheckclock(Checkclock):
-
-    def __init__(self, path: Path, avg_working_time: int = 8*60*60, working_days: str = "Mon-Fri", merge_threshold: int = 5):
-        super().__init__(tick_length=merge_threshold, path=path, avg_working_time=avg_working_time, working_days=working_days, ro=True)
+    def __init__(
+        self,
+        path: Path,
+        avg_working_time: int = 8 * 60 * 60,
+        working_days: str = "Mon-Fri",
+        merge_threshold: int = 5,
+    ):
+        super().__init__(
+            tick_length=merge_threshold,
+            path=path,
+            avg_working_time=avg_working_time,
+            working_days=working_days,
+            ro=True,
+        )
 
     def tick(self) -> None:
         pass

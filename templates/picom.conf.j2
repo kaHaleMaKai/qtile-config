@@ -5,9 +5,6 @@
 ############################################################
 
 shadow = {{ shadow }};
-no-dnd-shadow = true;
-no-dock-shadow = true;
-clear-shadow = true;
 shadow-radius = {{ shadow_radius }};
 shadow-offset-x = {{ shadow_offset }};
 shadow-offset-y = {{ shadow_offset }};
@@ -33,12 +30,10 @@ shadow-exclude = [ {% for item in shadow_excludes -%}
 {%- endfor %} ];
 shadow-ignore-shaped = false;
 xinerama-shadow-crop = false;
-menu-opacity = {{ menu_opacity }};
 inactive-opacity = 0.9;
 active-opacity = 1.0;
 frame-opacity = 0.7;
 inactive-opacity-override = false;
-alpha-step = {{ alpha_step|default("0.06") }}
 inactive-dim = 0.2;
 blur-kern = "{{ blur_kernel }}";
 blur-background-exclude = [ "window_type = 'dock'", "window_type = 'desktop'" ];
@@ -52,15 +47,14 @@ mark-ovredir-focused = true;
 detect-rounded-corners = true;
 detect-client-opacity = true;
 refresh-rate = 0;
-vsync = "{{ vsync|default('none') }}";
+vsync = {{ vsync|default('false') }};
 dbe = false;
-paint-on-overlay = true;
 focus-exclude = [ "class_g = 'Cairo-clock'" ];
 detect-transient = true;
 detect-client-leader = true;
 invert-color-include = [ ];
 glx-copy-from-front = false;
-glx-swap-method = "undefined";
+use-damage = true;
 wintypes :
 {
   tooltip :
@@ -70,9 +64,11 @@ wintypes :
     opacity = 0.82;
     focus = true;
   };
+  dock : { shadow = false; };
+  dnd : { shadow = false; };
+  pop_menu : { opacity = {{ menu_opacity }} };
+  dropdown_menu : { opacity = {{ menu_opacity }} };
 };
 inactive-dim-fixed = false;
 no-fading-openclose = false;
-#j2: vim: ft=dosini.j2
-# vim: ft=dosini
-
+opacity-rule = ["92:class_g='Neovide'"];

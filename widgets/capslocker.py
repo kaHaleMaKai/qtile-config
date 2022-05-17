@@ -23,7 +23,6 @@ from libqtile.widget import base
 
 import re
 import subprocess
-import notify2
 from procs import dunstify
 
 
@@ -36,8 +35,10 @@ class CapsLockIndicator(base.ThreadPoolText):
     """Really simple widget to show the current Caps Lock state."""
 
     orientations = base.ORIENTATION_HORIZONTAL
-    defaults = [('update_interval', 0.5, 'Update Time in seconds.'),
-                ('send_notifications', True, 'Turn notifications on or off.')]
+    defaults = [
+        ("update_interval", 0.5, "Update Time in seconds."),
+        ("send_notifications", True, "Turn notifications on or off."),
+    ]
 
     def __init__(self, **config):
         base.ThreadPoolText.__init__(self, "", **config)
@@ -47,7 +48,7 @@ class CapsLockIndicator(base.ThreadPoolText):
     def get_state(self):
         """Return a list with the current state of the keys."""
         try:
-            output = self.call_process(['xset', 'q'])
+            output = self.call_process(["xset", "q"])
         except subprocess.CalledProcessError as err:
             output = err.output.decode()
         if not output.startswith("Keyboard"):

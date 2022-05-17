@@ -1,11 +1,20 @@
+print(
+    """
+
+
+HELLO; WORLD!
+
+
+
+        """
+)
 import re
 import subprocess
 from libqtile.config import Screen, Group, Drag, Click, Match, ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.core.manager import Qtile
 from libqtile import hook, layout
-from libqtile.window import Window
-from libqtile.backend.x11.xcbq import Window as XWindow
+from libqtile.backend.x11.window import Window, XWindow
 from typing import List, Callable  # noqa: F401
 
 # custom imports – parts of config
@@ -29,13 +38,13 @@ scratchpad = ScratchPad(
 groups = util.groups[:]
 groups.append(scratchpad)
 
-matcher = {
-    "c": Match(wm_class=["Vivaldi-stable"]),
-    "e": Match(wm_class=["Evolution", "Thunderbird", "thunderbird"]),
-    "f": Match(wm_class=[re.compile("Firefox.*")]),
-}
-for g, match in matcher.items():
-    util.group_dict[g].matches.append(match)
+# matcher = {
+#     "c": Match(wm_class=["Vivaldi-stable"]),
+#     "e": Match(wm_class=["Evolution", "Thunderbird", "thunderbird"]),
+#     "f": Match(wm_class=[re.compile("Firefox.*")]),
+# }
+# for g, match in matcher.items():
+#     util.group_dict[g].matches.append(match)
 
 for group in util.groups:
     keys.add_keys(

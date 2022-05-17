@@ -7,7 +7,8 @@ from libqtile import bar, widget
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
-from widgets.checkclock_widget import CheckclockWidget
+
+# from widgets.checkclock_widget import CheckclockWidget
 from widgets.check_and_warn import CheckAndWarnWidget, CheckState
 
 # from widgets.contextmenu import ContextMenu, SpawnedMenu
@@ -17,7 +18,8 @@ import color
 import procs
 import re
 from pathlib import Path
-import dbus
+
+# import dbus_next
 
 
 settings = dict(
@@ -92,7 +94,9 @@ class DotGraph(_GenPollText):
         return max(0, min(3, math.floor(value * len(self.colors) / self.max)))
 
     def as_dots(self, *values):
-        dots = "".join(self.single_dot(*values[i : i + 2]) for i in range(0, self.graph_length - 1, 2))
+        dots = "".join(
+            self.single_dot(*values[i : i + 2]) for i in range(0, self.graph_length - 1, 2)
+        )
         avg = sum(values) / len(values)
         c = color.gradient(value=avg, max_value=self.max, colors=self.colors, scaling=1.2)
         return f"<tt><span foreground='#{c}'>{dots}</span></tt>"
@@ -177,7 +181,13 @@ class BorgBackupWidget(CheckAndWarnWidget):
         if current == next or not current:
             return
         urgency = "critical" if next is CheckState.ERROR else "normal"
-        procs.dunstify(f"--replace={self.dunstify_id}", "-u", urgency, "borg backup", self.borg_state_msgs[next])
+        procs.dunstify(
+            f"--replace={self.dunstify_id}",
+            "-u",
+            urgency,
+            "borg backup",
+            self.borg_state_msgs[next],
+        )
 
 
 borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10)
@@ -211,7 +221,7 @@ checkclock_args.update(settings)
 if util.in_debug_mode:
     checkclock_args["db_path"] = "/tmp/checkclock.sqlite"
 
-checkclock_widget = CheckclockWidget(**checkclock_args)
+# checkclock_widget = CheckclockWidget(**checkclock_args)
 
 
 def get_bar(screen_idx):
@@ -230,16 +240,24 @@ def get_bar(screen_idx):
     }
     if util.num_screens > 1:
         if is_primary:
-            group_box = widget.GroupBox(visible_groups=[ch for ch in "123456789"], **settings, **group_settings)
+            group_box = widget.GroupBox(
+                visible_groups=[ch for ch in "123456789"], **settings, **group_settings
+            )
         else:
-            group_box = widget.GroupBox(visible_groups=[ch for ch in "abcdef"], **settings, **group_settings)
+            group_box = widget.GroupBox(
+                visible_groups=[ch for ch in "abcdef"], **settings, **group_settings
+            )
     else:
         group_box = widget.GroupBox(**settings, **group_settings)
     widgets.append(group_box)
 
     if util.num_screens > 1:
         current_screen = widget.CurrentScreen(
-            active_text="✔", inactive_text="", active_color=color.BRIGHT_ORANGE, inactive_color=color.BLACK, **settings
+            active_text="✔",
+            inactive_text="",
+            active_color=color.BRIGHT_ORANGE,
+            inactive_color=color.BLACK,
+            **settings,
         )
         widgets.append(current_screen)
 
@@ -267,15 +285,20 @@ def get_bar(screen_idx):
 
     if is_primary:
         widgets.append(borg_widget)
-        widgets.append(checkclock_widget)
+        # widgets.append(checkclock_widget)
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
     else:
-        widgets.append(checkclock_widget.new_companion())
+        # widgets.append(checkclock_widget.new_companion())
+        pass
 
     widgets.append(space())
 
     volume = widget.Volume(
-        cardid=0, device=None, theme_path="/usr/share/icons/HighContrast/256x256", volume_app="pavucontrol", **settings
+        cardid=0,
+        device=None,
+        theme_path="/usr/share/icons/HighContrast/256x256",
+        volume_app="pavucontrol",
+        **settings,
     )
     widgets.append(volume)
     caps_lock = CapsLockIndicator(send_notifications=is_primary, **settings)
@@ -285,12 +308,21 @@ def get_bar(screen_idx):
         qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
 
     cpu_graph = DotGraph(
-        func=psutil.cpu_percent, max=100, update_interval=1, mouse_callbacks={"Button1": run_htop}, **settings
+        func=psutil.cpu_percent,
+        max=100,
+        update_interval=1,
+        mouse_callbacks={"Button1": run_htop},
+        **settings,
     )
     widgets.append(cpu_graph)
 
     net_graph = ArrowGraph(
-        func=get_net_throughput, max=(1 << 20), update_interval=1, use_diff=True, up_first=False, **settings
+        func=get_net_throughput,
+        max=(1 << 20),
+        update_interval=1,
+        use_diff=True,
+        up_first=False,
+        **settings,
     )
     widgets.append(net_graph)
 

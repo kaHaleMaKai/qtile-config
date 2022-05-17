@@ -7,8 +7,7 @@ import subprocess
 from itertools import chain
 from typing import Tuple, Iterable, Dict, Union, TypedDict
 from libqtile.core.manager import Qtile
-from libqtile.window import Window
-from libqtile.backend.x11.xcbq import Window as XWindow
+from libqtile.backend.x11.window import Window, XWindow
 from libqtile.group import _Group
 from libqtile.command import lazy
 from libqtile.lazy import LazyCall
@@ -33,7 +32,12 @@ laptop_display = "eDP-1"
 def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
     d: ScreenDict = {"_primary": "", "screens": {}}
     for line in lines:
-        if not line or line.startswith("Screen ") or "disconnected" in line or line.startswith(" "):
+        if (
+            not line
+            or line.startswith("Screen ")
+            or "disconnected" in line
+            or line.startswith(" ")
+        ):
             continue
         is_primary = "primary" in line
         m = re.match(

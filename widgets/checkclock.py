@@ -2,7 +2,7 @@ import os
 import re
 
 try:
-    import dbus  # type: ignore  # no stub present
+    import dbus_next  # type: ignore  # no stub present
 
     has_dbus = True
 except ImportError:
@@ -145,9 +145,7 @@ class Checkclock:
             proxy_object = dbus.SessionBus().get_object(
                 "org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver"
             )
-            self.dbus_method = dbus.Interface(
-                proxy_object, "org.cinnamon.ScreenSaver"
-            ).GetActive
+            self.dbus_method = dbus.Interface(proxy_object, "org.cinnamon.ScreenSaver").GetActive
         else:
             self.dbus_method = lambda: False
         self.path = path
@@ -193,9 +191,7 @@ class Checkclock:
         if not self.path.exists():
             con = self.get_connection()
             with con:
-                con.execute(
-                    "CREATE TABLE schedule (date DATE, time TIME, duration INTEGER)"
-                )
+                con.execute("CREATE TABLE schedule (date DATE, time TIME, duration INTEGER)")
                 con.execute("CREATE INDEX date_idx ON schedule (date)")
                 con.execute("CREATE TABLE paused (state bool)")
                 con.execute(
@@ -269,9 +265,7 @@ class Checkclock:
     def get_dates_from_schedule(self) -> Generator[datetime.date, None, None]:
         con = self.get_connection()
         cur = con.cursor()
-        cur.execute(
-            "SELECT distinct date from schedule WHERE date < ?", [datetime.date.today()]
-        )
+        cur.execute("SELECT distinct date from schedule WHERE date < ?", [datetime.date.today()])
         for row in cur:
             yield datetime.date.fromisoformat(row["date"])
 
@@ -299,9 +293,7 @@ class Checkclock:
             self.tick()
         return self.duration
 
-    def get_duration_from_backlog(
-        self, days_back: int = 0, min_duration: int = 600
-    ) -> int:
+    def get_duration_from_backlog(self, days_back: int = 0, min_duration: int = 600) -> int:
         if not days_back:
             query = """
                 SELECT
@@ -365,10 +357,7 @@ class Checkclock:
                 if (prev_end - prev_start).total_seconds() > min_duration:
                     yield prev_duration
                 prev_duration = (start, end)
-        if (
-            prev_duration
-            and (prev_duration[1] - prev_duration[0]).total_seconds() > min_duration
-        ):
+        if prev_duration and (prev_duration[1] - prev_duration[0]).total_seconds() > min_duration:
             yield prev_duration
 
     def compact(self, days_back: int, con: MaybeConnection = None) -> None:

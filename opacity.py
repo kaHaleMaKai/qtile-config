@@ -1,5 +1,5 @@
 from libqtile import hook
-from libqtile.window import Window
+from libqtile.backend.x11.window import Window
 
 full_opacities = {
     "class": {

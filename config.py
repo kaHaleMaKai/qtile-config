@@ -152,9 +152,9 @@ def autostart():
 # can't even start up properly
 # if not util.in_debug_mode:
 
-    # @hook.subscribe.screen_change
-    # def screen_change(qtile: Qtile, event):
-    #     util.restart_qtile(qtile)
+# @hook.subscribe.screen_change
+# def screen_change(qtile: Qtile, event):
+#     util.restart_qtile(qtile)
 
 
 def handle_floating_windows(window: Window) -> None:
@@ -176,5 +176,9 @@ def handle_floating_for_new_clients(window: Window) -> None:
 
 @hook.subscribe.client_name_updated
 def start_teams_meeting(window: Window) -> None:
-    if window and isinstance(window.name, str) and re.search(r"\(Meeting\).*Microsoft Teams.*Vivaldi", window.name):
+    if (
+        window
+        and isinstance(window.name, str)
+        and re.search(r"\(Meeting\).*Microsoft Teams.*Vivaldi", window.name)
+    ):
         procs.fakecam()

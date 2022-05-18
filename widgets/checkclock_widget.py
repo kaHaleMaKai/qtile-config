@@ -53,6 +53,9 @@ class CheckclockWidget(ThreadPoolText):
         ),
     ]
 
+    async def _config_async(self) -> None:
+        await self.checkclock.config_async()
+
     def __init__(self, **config):
         super().__init__("", **config)
         self.add_defaults(CheckclockWidget.defaults)

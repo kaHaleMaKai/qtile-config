@@ -120,9 +120,9 @@ class Checkclock:
     paused_state = -1
     not_working_state = -2
 
-    async def _config_async(self):
+    async def config_async(self) -> None:
         await add_signal_receiver(
-            self.on_screen_saver_changed,  # Callback function
+            self.on_screen_saver_changed,
             session_bus=True,
             signal_name="ActiveChanged",
             path="/org/cinnamon/ScreenSaver",

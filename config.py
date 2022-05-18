@@ -41,7 +41,7 @@ matcher = {
     ],
 }
 for g, match in matcher.items():
-    util.group_dict[g].matches.append(match)
+    util.group_dict[g].matches.extend(match)
 
 for group in util.groups:
     keys.add_keys(

@@ -355,8 +355,12 @@ def stop_distraction_free_mode(qtile: Qtile) -> None:
     procs.dunstify("including distractions again")
 
 
-@lazy.function
-def update_path(qtile: Qtile) -> None:
+def reload_qtile(qtile: Qtile) -> None:
+    reload_path()
+    qtile.cmd_reload_config()
+
+
+def reload_path() -> None:
     path_file = os.path.join(os.path.expanduser("$"), ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
     subprocess.run(

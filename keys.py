@@ -9,6 +9,7 @@ from util import (
     move_to_screen,
     in_debug_mode,
     restart_qtile,
+    reload_qtile,
     move_window_to_offset_group,
     start_distraction_free_mode,
     stop_distraction_free_mode,
@@ -41,10 +42,10 @@ inverse_modifier_keys = {
 }
 
 default_mod_key = "M"
-# if in_debug_mode:
-#     mod_abbrev = "A"
-# else:
-mod_abbrev = default_mod_key
+if in_debug_mode:
+    mod_abbrev = "A"
+else:
+    mod_abbrev = default_mod_key
 mod_key = inverse_modifier_keys[mod_abbrev]
 
 
@@ -161,7 +162,7 @@ keys = KeyList(
         "M-S-q": "fakecam choose-background",
         "M-C-q": lazy.shutdown,
         "M-r": "rofi -i -show run",
-        "M-S-r": lazy.reload_config,
+        "M-S-r": lazy.function(reload_qtile),
         "M-C-r": lazy.function(restart_qtile),
         "M-S-<F12>": start_distraction_free_mode,
         "M-<F12>": stop_distraction_free_mode,

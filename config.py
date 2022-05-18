@@ -159,7 +159,8 @@ def autostart():
 # if not util.in_debug_mode:
 
 # @hook.subscribe.screen_change
-# def screen_change(qtile: Qtile, event):
+# def screen_change(event):
+#     from libqtile import qtile
 #     util.restart_qtile(qtile)
 
 

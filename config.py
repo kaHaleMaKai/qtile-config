@@ -28,13 +28,20 @@ scratchpad = ScratchPad(
 groups = util.groups[:]
 groups.append(scratchpad)
 
-# matcher = {
-#     "c": Match(wm_class=["Vivaldi-stable"]),
-#     "e": Match(wm_class=["Evolution", "Thunderbird", "thunderbird"]),
-#     "f": Match(wm_class=[re.compile("Firefox.*")]),
-# }
-# for g, match in matcher.items():
-#     util.group_dict[g].matches.append(match)
+matcher = {
+    "c": [Match(wm_class="Vivaldi-stable")],
+    "e": [
+        Match(wm_class="Evolution"),
+        Match(wm_class="Thunderbird"),
+        Match(wm_class="thunderbird"),
+    ],
+    "f": [
+        Match(wm_class=re.compile(r".*Firefox.*")),
+        Match(title=re.compile(r".*Firefox Developer Edition\s*")),
+    ],
+}
+for g, match in matcher.items():
+    util.group_dict[g].matches.append(match)
 
 for group in util.groups:
     keys.add_keys(

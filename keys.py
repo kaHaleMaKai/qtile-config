@@ -161,7 +161,7 @@ keys = KeyList(
         "M-S-q": "fakecam choose-background",
         "M-C-q": lazy.shutdown,
         "M-r": "rofi -i -show run",
-        "M-S-r": "rofi-pkill-menu",
+        "M-S-r": lazy.reload_config,
         "M-C-r": lazy.function(restart_qtile),
         "M-S-<F12>": start_distraction_free_mode,
         "M-<F12>": stop_distraction_free_mode,

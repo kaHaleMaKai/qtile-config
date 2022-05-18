@@ -158,10 +158,12 @@ def autostart():
 # can't even start up properly
 # if not util.in_debug_mode:
 
-# @hook.subscribe.screen_change
-# def screen_change(event):
-#     from libqtile import qtile
-#     util.restart_qtile(qtile)
+
+@hook.subscribe.screen_change
+def screen_change(event):
+    from libqtile import qtile
+
+    util.reload_qtile(qtile)
 
 
 def handle_floating_windows(window: Window) -> None:

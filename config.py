@@ -1,13 +1,3 @@
-print(
-    """
-
-
-HELLO; WORLD!
-
-
-
-        """
-)
 import re
 import subprocess
 from libqtile.config import Screen, Group, Drag, Click, Match, ScratchPad, DropDown

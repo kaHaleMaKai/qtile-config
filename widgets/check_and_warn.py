@@ -4,7 +4,7 @@ import subprocess as sub
 from enum import IntEnum
 from typing import Any, Callable, Optional, Union, cast
 
-from libqtile.widget.base import ThreadedPollText, ORIENTATION_HORIZONTAL  # type: ignore[import]
+from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL  # type: ignore[import]
 
 from .lib.notifier import Notifier
 
@@ -26,7 +26,7 @@ Cmd = Union[str, list[str]]
 MaybeInt = Optional[int]
 
 
-class CheckAndWarnWidget(ThreadedPollText):  # type: ignore[misc]
+class CheckAndWarnWidget(ThreadPoolText):  # type: ignore[misc]
 
     orientations = ORIENTATION_HORIZONTAL
 
@@ -55,7 +55,7 @@ class CheckAndWarnWidget(ThreadedPollText):  # type: ignore[misc]
 
     def __init__(self, **config: Any) -> None:
 
-        super().__init__(**config)
+        super().__init__(" ", **config)
         self.add_defaults(CheckAndWarnWidget.defaults)
         self.has_error = False
         self.custom_error_msg: MaybeString = None

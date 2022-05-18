@@ -41,10 +41,10 @@ inverse_modifier_keys = {
 }
 
 default_mod_key = "M"
-if in_debug_mode:
-    mod_abbrev = "A"
-else:
-    mod_abbrev = default_mod_key
+# if in_debug_mode:
+#     mod_abbrev = "A"
+# else:
+mod_abbrev = default_mod_key
 mod_key = inverse_modifier_keys[mod_abbrev]
 
 
@@ -85,7 +85,9 @@ class KeyList(list):
                 elif isinstance(ks, str):
                     subks = [ks]
                 else:
-                    raise TypeError("wrong type for key. expected: (str, list, tuple). got: %s" % type(ks))
+                    raise TypeError(
+                        "wrong type for key. expected: (str, list, tuple). got: %s" % type(ks)
+                    )
                 for k in subks:
                     cmd = v()
                     if k:
@@ -184,7 +186,7 @@ keys = KeyList(
         "M-<F8>": "totp",
         "M-<F9>": "rofi-menu",
         "M-<F10>": "rofi-pass",
-        "M-<udiaeresis>": "rofimoji",
+        # "M-<udiaeresis>": "rofimoji",
         "M-S-u": "toggle-unclutter",
         "M-s": "flameshot gui",
         "M-S-s": "flameshot full --clipboard",

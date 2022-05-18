@@ -1,17 +1,13 @@
 import os
 import re
 
-try:
-    import dbus_next  # type: ignore  # no stub present
-
-    has_dbus = True
-except ImportError:
-    has_dbus = False
 import sqlite3
 import datetime
 from pathlib import Path
 from typing import Optional, Tuple, List, Generator, Callable, Any, Dict, cast
 from enum import Enum
+from libqtile.utils import add_signal_receiver
+from libqtile.log_utils import logger
 
 
 MaybeConnection = Optional[sqlite3.Connection]
@@ -124,6 +120,18 @@ class Checkclock:
     paused_state = -1
     not_working_state = -2
 
+    async def _config_async(self):
+        await add_signal_receiver(
+            self.on_screen_saver_changed,  # Callback function
+            session_bus=True,
+            signal_name="ActiveChanged",
+            path="/org/cinnamon/ScreenSaver",
+            dbus_interface="org.cinnamon.ScreenSaver",
+        )
+
+    def on_screen_saver_changed(self, msg: Any) -> None:
+        self._is_screensaver_active = msg.body[0]
+
     def __init__(
         self,
         tick_length: int,
@@ -141,13 +149,6 @@ class Checkclock:
 
         self.working_days = Weekday.parse(working_days)
         self.work_today = self.check_work_today()
-        if has_dbus:
-            proxy_object = dbus.SessionBus().get_object(
-                "org.cinnamon.ScreenSaver", "/org/cinnamon/ScreenSaver"
-            )
-            self.dbus_method = dbus.Interface(proxy_object, "org.cinnamon.ScreenSaver").GetActive
-        else:
-            self.dbus_method = lambda: False
         self.path = path
         self.tick_length = tick_length
         self.today = datetime.date.today()
@@ -155,6 +156,7 @@ class Checkclock:
         self.ro = ro
         self._duration = 0
         self.min_duration = min_duration
+        self._is_screensaver_active = False
 
         self.hooks: Dict[Callable[[Any, ...], Any]] = {}
         if on_duration_update:
@@ -175,6 +177,10 @@ class Checkclock:
         else:
             self.duration = self.get_duration_from_db()
             self.paused = self.get_paused_state_from_db()
+
+    @property
+    def is_screensaver_active(self) -> bool:
+        return self._is_screensaver_active
 
     @property
     def duration(self) -> int:
@@ -279,15 +285,12 @@ class Checkclock:
         else:
             self.call_hook("on_resume", self.duration)
 
-    def is_screensaver_active(self) -> bool:
-        return bool(self.dbus_method())
-
     def get_value(self, tick: bool = True) -> int:
         if not self.work_today and not self.check_work_today():
             return self.not_working_state
         if self.paused:
             return self.paused_state
-        if self.is_screensaver_active():
+        if self.is_screensaver_active:
             return self.duration
         if tick:
             self.tick()

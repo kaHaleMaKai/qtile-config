@@ -5,7 +5,7 @@ import datetime
 from typing import Generator, List, Any, Union
 from procs import dunstify
 from pathlib import Path
-from libqtile.widget.base import ThreadedPollText, ORIENTATION_HORIZONTAL
+from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL
 from libqtile.widget.textbox import TextBox
 from .checkclock import (
     Checkclock,
@@ -16,7 +16,7 @@ from .checkclock import (
 )
 
 
-class CheckclockWidget(ThreadedPollText):
+class CheckclockWidget(ThreadPoolText):
 
     orientations = ORIENTATION_HORIZONTAL
     defaults = [
@@ -31,7 +31,8 @@ class CheckclockWidget(ThreadedPollText):
         (
             "pause_function",
             None,
-            "function to call when toggling the pause state. " "receives arguments (is_paused: bool, value: str)",
+            "function to call when toggling the pause state. "
+            "receives arguments (is_paused: bool, value: str)",
         ),
         ("avg_working_time", 8 * 60 * 60, "number of seconds to work per day"),
         (
@@ -53,7 +54,7 @@ class CheckclockWidget(ThreadedPollText):
     ]
 
     def __init__(self, **config):
-        super().__init__(**config)
+        super().__init__("", **config)
         self.add_defaults(CheckclockWidget.defaults)
         self.db_path = Path(os.path.expanduser(self.db_path))
         hooks = config.get("hooks") if config.get("hooks") else {}
@@ -89,7 +90,9 @@ class CheckclockWidget(ThreadedPollText):
         self.checkclock.toggle_paused()
         value = self.poll(tick=not self.checkclock.paused)
         if self.pause_function:
-            self.pause_function(self.checkclock.paused, self.format_time(self.checkclock.duration))
+            self.pause_function(
+                self.checkclock.paused, self.format_time(self.checkclock.duration)
+            )
         self.update(text=value)
 
     def update(self, text: str) -> None:
@@ -163,7 +166,9 @@ class CheckclockWidget(ThreadedPollText):
             if i > 0 and get_previous_date(i) in schedule_dates:
                 self.checkclock.compact(days_back=i)
             min_duration = 0 if not i else self.min_working_time
-            duration = self.checkclock.get_duration_from_backlog(days_back=i, min_duration=min_duration)
+            duration = self.checkclock.get_duration_from_backlog(
+                days_back=i, min_duration=min_duration
+            )
             if duration is None:
                 continue
             total_duration.append(duration)
@@ -172,7 +177,11 @@ class CheckclockWidget(ThreadedPollText):
                 continue
             color = self.get_color(duration)
             table_date = get_previous_date(i).strftime("%a, %Y-%m-%d")
-            msg.append(self.format_msg(f"{table_date}: {as_hours_and_minutes(duration)}", color, bold=True))
+            msg.append(
+                self.format_msg(
+                    f"{table_date}: {as_hours_and_minutes(duration)}", color, bold=True
+                )
+            )
             if not i:
                 msg.append(schedule)
             else:

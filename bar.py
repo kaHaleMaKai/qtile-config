@@ -8,7 +8,7 @@ from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
 
-# from widgets.checkclock_widget import CheckclockWidget
+from widgets.checkclock_widget import CheckclockWidget
 from widgets.check_and_warn import CheckAndWarnWidget, CheckState
 
 # from widgets.contextmenu import ContextMenu, SpawnedMenu
@@ -218,10 +218,11 @@ checkclock_args = dict(
 )
 checkclock_args.update(settings)
 
-if util.in_debug_mode:
-    checkclock_args["db_path"] = "/tmp/checkclock.sqlite"
+db_key = "QTILE_CHECKCLOCK_DB"
+if db_key in os.environ:
+    checkclock_args["db_path"] = os.environ[db_key]
 
-# checkclock_widget = CheckclockWidget(**checkclock_args)
+checkclock_widget = CheckclockWidget(**checkclock_args)
 
 
 def get_bar(screen_idx):
@@ -285,10 +286,10 @@ def get_bar(screen_idx):
 
     if is_primary:
         widgets.append(borg_widget)
-        # widgets.append(checkclock_widget)
+        widgets.append(checkclock_widget)
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
     else:
-        # widgets.append(checkclock_widget.new_companion())
+        widgets.append(checkclock_widget.new_companion())
         pass
 
     widgets.append(space())

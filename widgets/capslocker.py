@@ -23,7 +23,7 @@ from libqtile.widget import base
 
 import re
 import subprocess
-from procs import dunstify
+from procs import _dunstify
 
 
 ID = 1928398723
@@ -63,9 +63,9 @@ class CapsLockIndicator(base.ThreadPoolText):
         new_state = self.get_state()
         if self.send_notifications and self.is_locked != new_state:
             if new_state:
-                dunstify.run(f"--replace={ID}", "-u", "critical", SUMMARY, MSG)
+                _dunstify.run(f"--replace={ID}", "-u", "critical", SUMMARY, MSG)
             else:
-                dunstify.run(f"--close={ID}")
+                _dunstify.run(f"--close={ID}")
         self.is_locked = new_state
         if new_state:
             return MSG

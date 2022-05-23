@@ -1,5 +1,6 @@
 from libqtile import hook
 from libqtile.backend.x11.window import Window
+from libqtile.log_utils import logger
 
 full_opacities = {
     "class": {
@@ -96,14 +97,18 @@ def get_opacity_spec(window: Window, cls=None, name=None, role=None, type=None):
     else:
         classes, name, role, type = get_specs(window)
 
-    has_full_opacity = (
-        name in full_opacities["name"]
-        or role in full_opacities["role"]
-        or type in full_opacities["type"]
-        or classes[0] in full_opacities["class"]
-        or classes[1] in full_opacities["class"]
-    )
-    if has_full_opacity:
+    try:
+        has_full_opacity = (
+            name in full_opacities["name"]
+            or role in full_opacities["role"]
+            or type in full_opacities["type"]
+            or classes[0] in full_opacities["class"]
+            or classes[1] in full_opacities["class"]
+        )
+        if has_full_opacity:
+            return {"full": True, "value": 1.0}
+    except IndexError as e:
+        logger.warn(e)
         return {"full": True, "value": 1.0}
 
     opacity = partial_opacities["name"].get(name)

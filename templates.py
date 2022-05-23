@@ -4,6 +4,7 @@ import yaml
 import hashlib
 from jinja2 import Environment, FileSystemLoader
 
+from libqtile.log_utils import logger
 
 cur_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -11,7 +12,9 @@ cur_dir = os.path.abspath(os.path.dirname(__file__))
 def get_template(file):
     path = os.path.join(cur_dir, "templates")
     loader = FileSystemLoader(path)
-    return Environment(loader=loader, line_comment_prefix="#j2:").get_template(file)
+    return Environment(loader=loader, line_comment_prefix="#j2:", enable_async=True).get_template(
+        file
+    )
 
 
 def get_vars(src, overrides):
@@ -24,7 +27,15 @@ def get_vars(src, overrides):
     return src_vars
 
 
-def render(src, dest, keep_empty=True, keep_comments=True, comment_start="#", keep_modelines=True, overrides=None):
+async def render(
+    src,
+    dest,
+    keep_empty=True,
+    keep_comments=True,
+    comment_start="#",
+    keep_modelines=True,
+    overrides=None,
+):
     dest = os.path.abspath(os.path.expanduser(dest))
     src = src if src.endswith(".j2") else f"{src}.j2"
     if os.path.isdir(dest):
@@ -40,10 +51,10 @@ def render(src, dest, keep_empty=True, keep_comments=True, comment_start="#", ke
     src_vars = get_vars(src, overrides)
 
     if keep_comments and keep_empty:
-        content = t.render(**src_vars)
+        content = await t.render_async(**src_vars)
     else:
         lines = []
-        for line in t.render(**src_vars).split("\n"):
+        async for line in t.render_async(**src_vars).split("\n"):
             if not line.strip():
                 if keep_empty:
                     lines.append(line)

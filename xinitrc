@@ -15,6 +15,7 @@ config_dir="${HOME}/.config/qtile-test"
 app_dir="${HOME}/local/qtile-test"
 export LOG_LEVEL=DEBUG
 # export QTILE_MOD_KEY=mod1
+export PYTHONASYNCIODEBUG=1
 
 source "${app_dir}/.venv/bin/activate"
 exec "${app_dir}/bin/qtile" start --config "${config_dir}/config.py"

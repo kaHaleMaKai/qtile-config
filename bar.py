@@ -169,8 +169,8 @@ class BorgBackupWidget(CheckAndWarnWidget):
             return CheckState.ERROR
 
     def run(self) -> None:
-        procs.dunstify("starting borg backup")
-        procs.borg_backup()
+        procs._dunstify("starting borg backup")
+        procs._borg_backup()
         self.update(text=self.poll(state=CheckState.IN_PROGRESS))
 
     def cmd_reset(self) -> None:
@@ -181,7 +181,7 @@ class BorgBackupWidget(CheckAndWarnWidget):
         if current == next or not current:
             return
         urgency = "critical" if next is CheckState.ERROR else "normal"
-        procs.dunstify(
+        procs._dunstify(
             f"--replace={self.dunstify_id}",
             "-u",
             urgency,
@@ -195,7 +195,7 @@ borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10)
 
 def notify_checkclock_pause(is_paused: bool, _: str):
     p = "pause" if is_paused else "resume"
-    procs.dunstify(f"{p} checkclock")
+    procs._dunstify(f"{p} checkclock")
 
 
 paused_text = "<big>⏸</big>"
@@ -213,7 +213,7 @@ checkclock_args = dict(
     working_days="Mon-Sun",
     avg_working_time=(7 * 3600 + 45 * 60),
     hooks={
-        "on_rollover": lambda _: procs.dunstify(checkclock_id, f"🔄 checkclock"),
+        "on_rollover": lambda _: procs._dunstify(checkclock_id, "🔄 checkclock"),
     },
 )
 checkclock_args.update(settings)

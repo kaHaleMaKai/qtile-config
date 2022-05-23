@@ -1,3 +1,4 @@
+import os
 import re
 import subprocess
 from libqtile.config import Screen, Group, Drag, Click, Match, ScratchPad, DropDown
@@ -6,10 +7,12 @@ from libqtile.core.manager import Qtile
 from libqtile import hook, layout
 from libqtile.backend.x11.window import Window, XWindow
 from typing import List, Callable  # noqa: F401
+from libqtile.log_utils import logger
 
 # custom imports – parts of config
 
 import procs
+from procs import Proc
 import color
 from floating_rules import get_floating_rules
 from keys import keys, mod_key
@@ -133,39 +136,40 @@ wmname = "LG3D"
 
 
 @hook.subscribe.startup_once
-def autostart():
-    print("auto-starting commands")
-    procs.feh()
-    procs.unclutter()
-    procs.network_manager()
-    procs.xfce4_power_manager()
+async def autostart():
+    logger.info("auto-starting commands")
+    ps = [
+        procs.feh,
+        procs.unclutter,
+        procs.network_manager,
+        procs.xfce4_power_manager,
+        procs.setxkbmap,
+    ]
     if not util.in_debug_mode:
-        procs.screensaver()
-        procs.polkit_agent()
-        procs.xss_lock()
-        procs.shiftred()
-        procs.systemctl_user("dunst")
-        procs.systemctl_user("picom")
-        util.render_dunstrc()
-        util.render_picom_config()
-        util.render_terminalrc()
-        procs.bluetooth()
-        procs.nextcloud_sync()
-        procs.kde_connect()
-    procs.setxkbmap()
-    procs.systemctl("start", "mouse.service")
-
-
-# this hook keeps on firing in xephyr so that qtile
-# can't even start up properly
-# if not util.in_debug_mode:
+        ps.extend(
+            [
+                procs.screensaver,
+                procs.polkit_agent,
+                procs.xss_lock,
+                procs.shiftred,
+                procs.start_dunst,
+                procs.start_picom,
+                util.render_dunstrc,
+                util.render_picom_config,
+                util.render_terminalrc,
+                procs.bluetooth,
+                procs.nextcloud_sync,
+                procs.kde_connect,
+            ]
+        )
+    await Proc.await_many(*ps)
 
 
 @hook.subscribe.screen_change
-def screen_change(event):
+async def screen_change(event):
     from libqtile import qtile
 
-    util.reload_qtile(qtile)
+    await util.reload_qtile(qtile)
 
 
 def handle_floating_windows(window: Window) -> None:
@@ -186,10 +190,10 @@ def handle_floating_for_new_clients(window: Window) -> None:
 
 
 @hook.subscribe.client_name_updated
-def start_teams_meeting(window: Window) -> None:
+async def start_teams_meeting(window: Window) -> None:
     if (
         window
         and isinstance(window.name, str)
         and re.search(r"\(Meeting\).*Microsoft Teams.*Vivaldi", window.name)
     ):
-        procs.fakecam()
+        await procs.fakecam.run()

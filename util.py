@@ -3,6 +3,7 @@ import re
 import yaml
 import pywal
 import procs
+import asyncio
 import subprocess
 from itertools import chain
 from typing import Tuple, Iterable, Dict, Union, TypedDict
@@ -16,6 +17,8 @@ from libqtile.layout.tree import TreeTab
 from libqtile.config import Group
 import templates
 from color import complement, add_hashtag
+
+from libqtile.log_utils import logger
 
 
 class ScreenDict(TypedDict):
@@ -56,7 +59,6 @@ def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
 
 
 def get_screens() -> ScreenDict:
-    import subprocess
 
     cmd = ["xrandr"]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -293,9 +295,9 @@ def get_default_vars(**overrides):
     return default_vars
 
 
-def render_dunstrc(**overrides) -> None:
+async def render_dunstrc(**overrides) -> None:
     if not in_debug_mode:
-        templates.render(
+        await templates.render(
             "dunstrc",
             "~/.config/dunst",
             keep_comments=False,
@@ -304,9 +306,9 @@ def render_dunstrc(**overrides) -> None:
         )
 
 
-def render_picom_config(**overrides) -> None:
+async def render_picom_config(**overrides) -> None:
     if not in_debug_mode:
-        templates.render(
+        await templates.render(
             "picom.conf",
             "~/.config",
             keep_empty=True,
@@ -314,10 +316,10 @@ def render_picom_config(**overrides) -> None:
         )
 
 
-def render_terminalrc(**overrides) -> None:
+async def render_terminalrc(**overrides) -> None:
     if not in_debug_mode:
         colors = get_wal_colors(**overrides)
-        templates.render(
+        await templates.render(
             "terminalrc",
             "~/.config/xfce4/terminal",
             keep_empty=True,
@@ -325,10 +327,10 @@ def render_terminalrc(**overrides) -> None:
         )
 
 
-def restart_qtile(qtile: Qtile) -> None:
+async def restart_qtile(qtile: Qtile) -> None:
     print("restarting qtile")
     print("running feh")
-    procs.feh()
+    await procs.feh()
     print("setting opacities")
     for group in qtile.groups:
         for window in group.windows:
@@ -338,36 +340,35 @@ def restart_qtile(qtile: Qtile) -> None:
                 pass
     print("executing cmd_restart")
     qtile.cmd_restart()
-    render_dunstrc()
-    render_picom_config()
-    render_terminalrc()
-    procs.resume_dunst()
+    await asyncio.gather(
+        render_dunstrc(), render_picom_config(), render_terminalrc(), procs.resume_dunst.run()
+    )
 
 
 @lazy.function
 def start_distraction_free_mode(qtile: Qtile) -> None:
-    procs.pause_dunst()
+    procs._pause_dunst()
 
 
 @lazy.function
 def stop_distraction_free_mode(qtile: Qtile) -> None:
-    procs.resume_dunst()
-    procs.dunstify("including distractions again")
+    procs._resume_dunst()
+    procs._dunstify("including distractions again")
 
 
-def reload_qtile(qtile: Qtile) -> None:
-    reload_path()
+async def reload_qtile(qtile: Qtile) -> None:
+    await reload_path()
     qtile.cmd_reload_config()
 
 
-def reload_path() -> None:
-    path_file = os.path.join(os.path.expanduser("$"), ".config", "zsh", "path")
+async def reload_path() -> None:
+    path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
-    subprocess.run(
+    await procs.Proc(
         f"/usr/bin/zsh -c 'source {path_file}'",
         shell=True,
         env={"QTILE_EXPORT_PATH": tmp_file},
-    )
+    ).run()
     with open(tmp_file, "r") as f:
         path_env = f.read()
     if path_env.strip():
@@ -376,5 +377,4 @@ def reload_path() -> None:
 
 @lazy.function
 def lock_screen(qtile: Qtile) -> None:
-    procs.screensaver_cmd()
-    procs.resume_dunst()
+    procs._screensaver_cmd

@@ -3,7 +3,7 @@ import shutil
 import random
 import datetime
 from typing import Generator, List, Any, Union
-from procs import dunstify
+from procs import _dunstify
 from pathlib import Path
 from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL
 from libqtile.widget.textbox import TextBox
@@ -196,4 +196,4 @@ class CheckclockWidget(ThreadPoolText):
         formatted_diff = as_hours_and_minutes(diff)
         color = "green" if diff >= 0 else "red"
         msg.append(f"<b>total balance:</b> {self.format_msg(formatted_diff, color=color)}")
-        dunstify.run(f"--replace={self.id}", "balance", "\n".join(msg))
+        _dunstify.run(f"--replace={self.id}", "balance", "\n".join(msg))

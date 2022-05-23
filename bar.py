@@ -305,7 +305,9 @@ def get_bar(screen_idx):
     caps_lock = CapsLockIndicator(send_notifications=is_primary, **settings)
     widgets.append(caps_lock)
 
-    def run_htop(qtile):
+    def run_htop():
+        from libqtile import qtile
+
         qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
 
     cpu_graph = DotGraph(

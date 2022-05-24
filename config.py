@@ -136,14 +136,12 @@ wmname = "LG3D"
 
 
 @hook.subscribe.startup_once
-async def autostart():
-    logger.info("auto-starting commands")
+async def autostart_once() -> None:
+    logger.info("running startup_once")
     ps = [
-        procs.feh,
         procs.unclutter,
         procs.network_manager,
         procs.xfce4_power_manager,
-        procs.setxkbmap,
     ]
     if not util.in_debug_mode:
         ps.extend(
@@ -154,12 +152,24 @@ async def autostart():
                 procs.shiftred,
                 procs.start_dunst,
                 procs.start_picom,
-                util.render_dunstrc,
-                util.render_picom_config,
-                util.render_terminalrc,
                 procs.bluetooth,
                 procs.nextcloud_sync,
                 procs.kde_connect,
+            ]
+        )
+    await Proc.await_many(*ps)
+
+
+@hook.subscribe.startup
+async def autostart() -> None:
+    logger.info("running startup")
+    ps = [procs.feh, procs.setxkbmap, procs.resume_dunst]
+    if not util.in_debug_mode:
+        ps.extend(
+            [
+                util.render_dunstrc(),
+                util.render_picom_config(),
+                util.render_terminalrc(),
             ]
         )
     await Proc.await_many(*ps)

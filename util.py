@@ -296,53 +296,42 @@ def get_default_vars(**overrides):
 
 
 async def render_dunstrc(**overrides) -> None:
-    if not in_debug_mode:
-        await templates.render(
-            "dunstrc",
-            "~/.config/dunst",
-            keep_comments=False,
-            keep_empty=False,
-            overrides=get_default_vars(**overrides),
-        )
+    await templates.render(
+        "dunstrc",
+        "~/.config/dunst",
+        keep_comments=False,
+        keep_empty=False,
+        overrides=get_default_vars(**overrides),
+    )
 
 
 async def render_picom_config(**overrides) -> None:
-    if not in_debug_mode:
-        await templates.render(
-            "picom.conf",
-            "~/.config",
-            keep_empty=True,
-            overrides=get_default_vars(**overrides),
-        )
+    await templates.render(
+        "picom.conf",
+        "~/.config",
+        keep_empty=True,
+        overrides=get_default_vars(**overrides),
+    )
 
 
 async def render_terminalrc(**overrides) -> None:
-    if not in_debug_mode:
-        colors = get_wal_colors(**overrides)
-        await templates.render(
-            "terminalrc",
-            "~/.config/xfce4/terminal",
-            keep_empty=True,
-            overrides=get_default_vars(**colors),
-        )
+    colors = get_wal_colors(**overrides)
+    await templates.render(
+        "terminalrc",
+        "~/.config/xfce4/terminal",
+        keep_empty=True,
+        overrides=get_default_vars(**colors),
+    )
 
 
-async def restart_qtile(qtile: Qtile) -> None:
-    print("restarting qtile")
-    print("running feh")
-    await procs.feh()
-    print("setting opacities")
+def restart_qtile(qtile: Qtile) -> None:
     for group in qtile.groups:
         for window in group.windows:
             try:
                 window.opacity = window._full_opacity
             except AttributeError:
                 pass
-    print("executing cmd_restart")
     qtile.cmd_restart()
-    await asyncio.gather(
-        render_dunstrc(), render_picom_config(), render_terminalrc(), procs.resume_dunst.run()
-    )
 
 
 @lazy.function
@@ -357,24 +346,38 @@ def stop_distraction_free_mode(qtile: Qtile) -> None:
 
 
 async def reload_qtile(qtile: Qtile) -> None:
-    await reload_path()
-    qtile.cmd_reload_config()
-
-
-async def reload_path() -> None:
+    logger.info("reloading config (async)")
     path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
     await procs.Proc(
-        f"/usr/bin/zsh -c 'source {path_file}'",
-        shell=True,
-        env={"QTILE_EXPORT_PATH": tmp_file},
+        f"/usr/bin/zsh -c 'source {path_file}'", shell=True, env={"QTILE_EXPORT_PATH": tmp_file}
     ).run()
     with open(tmp_file, "r") as f:
         path_env = f.read()
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
+    qtile.cmd_reload_config()
+    logger.critical("finished reloading config (async)")
+
+
+def sync_reload_qtile(qtile: Qtile) -> None:
+    logger.critical("reloading config (sync)")
+    path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
+    tmp_file = "/tmp/zsh-export-path"
+    procs.Proc(
+        f"/usr/bin/zsh -c 'source {path_file}'",
+        shell=True,
+        env={"QTILE_EXPORT_PATH": tmp_file},
+        sync=True,
+    ).run()
+    with open(tmp_file, "r") as f:
+        path_env = f.read()
+    if path_env.strip():
+        os.environ["PATH"] = path_env.strip()
+    qtile.cmd_reload_config()
+    logger.critical("finished reloading config (sync)")
 
 
 @lazy.function
 def lock_screen(qtile: Qtile) -> None:
-    procs._screensaver_cmd
+    procs.screensaver_cmd.sync().run()

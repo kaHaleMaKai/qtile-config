@@ -10,7 +10,7 @@ from asyncio.subprocess import (
     PIPE,
     Process,
 )
-from typing import Awaitable, Optional, Iterable, TypedDict, Union, Any
+from typing import Awaitable, Optional, Iterable, TypedDict, Union, Any, overload, Literal
 
 from libqtile.log_utils import logger
 
@@ -124,6 +124,35 @@ class Proc(ABC):
 
     args: tuple[str, ...]
 
+    @overload
+    def __new__(
+        cls,
+        *args: str,
+        timeout: MaybeInt = None,
+        error_title: MaybeStr = None,
+        dunstifier: Optional[Dunstifier] = None,
+        shell: bool = False,
+        bg: Literal[False] = False,
+        env: Optional[dict[str, str]] = None,
+        sync: Literal[False] = False,
+    ) -> "AsyncProc":
+        pass
+
+    @overload
+    def __new__(
+        cls,
+        *args: str,
+        timeout: MaybeInt = None,
+        error_title: MaybeStr = None,
+        dunstifier: Optional[Dunstifier] = None,
+        shell: bool = False,
+        bg: Literal[True] = False,
+        env: Optional[dict[str, str]] = None,
+        sync: Literal[False] = False,
+    ) -> "BackgroundProc":
+        pass
+
+    @overload
     def __new__(
         cls,
         *args: str,
@@ -133,13 +162,33 @@ class Proc(ABC):
         shell: bool = False,
         bg: bool = False,
         env: Optional[dict[str, str]] = None,
-    ) -> "Proc":
+        sync: Literal[True] = False,
+    ) -> "SyncProc":
+        pass
+
+    def __new__(
+        cls,
+        *args: str,
+        timeout: MaybeInt = None,
+        error_title: MaybeStr = None,
+        dunstifier: Optional[Dunstifier] = None,
+        shell: bool = False,
+        bg: bool = False,
+        env: Optional[dict[str, str]] = None,
+        sync: bool = False,
+    ):
         if not dunstifier:
             dunstifier = Dunstifier(replace=False, name=error_title) if error_title else None
         if bg:
             return BackgroundProc(*args, shell=shell, dunstifier=dunstifier, env=env)
-        else:
+        elif not sync:
             return AsyncProc(*args, timeout=timeout, shell=shell, dunstifier=dunstifier, env=env)
+        else:
+            return SyncProc(*args, timeout=timeout, shell=shell, env=env)
+
+    @classmethod
+    def calc_timeout(cls, timeout: Number) -> Number:
+        return timeout if timeout > cls.min_timeout else cls.min_timeout
 
     @abstractmethod
     def clone(self) -> "Proc":
@@ -154,7 +203,7 @@ class Proc(ABC):
         loop = asyncio.get_running_loop()
         start = loop.time()
         try:
-            res = await self._run_async()
+            res = await self._run_helper()
             logger.debug(f"proc {self} has returned with rc={res['rc']}")
             duration = loop.time() - start
             res["duration"] = duration
@@ -175,9 +224,10 @@ class Proc(ABC):
                 msg = f"command '{res['cmd']}' {rc_msg}. for details, check the log"
                 title = None
             await self.dunstifier.error(msg, title=title)
+        except TypeError as e:
+            logger.error(f"proc {self} failed. self.proc is {self.proc}. msg: {e}", exc_info=True)
         except Exception as e:
-            logger.error(e)
-            logger.error(f"command '{res['cmd']}' exited with rc={res['rc']}. {res['msg']}")
+            logger.error(f"proc {self} failed: {e}", exc_info=True)
 
     @property
     @abstractmethod
@@ -234,7 +284,7 @@ class BackgroundProc(Proc):
     def clone(self) -> "Proc":
         return BackgroundProc(*self.args, shell=self.shell, dunstifier=self.dunstifier)
 
-    async def _run_async(self) -> ProcMsg:
+    async def _run_helper(self) -> ProcMsg:
         if self.shell:
             cmd = " ".join(self.args)
         else:
@@ -280,8 +330,13 @@ class AsyncProc(Proc):
         self.shell = shell
         self.env = env
 
-    def clone(self) -> "Proc":
-        return BackgroundProc(
+    def clone(self) -> "AsyncProc":
+        return AsyncProc(
+            *self.args, shell=self.shell, timeout=self.timeout, dunstifier=self.dunstifier
+        )
+
+    def sync(self) -> "SyncProc":
+        return SyncProc(
             *self.args, shell=self.shell, timeout=self.timeout, dunstifier=self.dunstifier
         )
 
@@ -293,17 +348,13 @@ class AsyncProc(Proc):
         timeout = self._timeout or self.default_timeout
         return self.calc_timeout(timeout)
 
-    @classmethod
-    def calc_timeout(cls, timeout: Number) -> Number:
-        return timeout if timeout > cls.min_timeout else cls.min_timeout
-
     @property
     def returncode(self) -> MaybeInt:
         if not self.proc:
             return None
         return self.proc.returncode
 
-    async def _run_async(self) -> ProcMsg:
+    async def _run_helper(self) -> ProcMsg:
         if self.shell:
             self.proc = await new_shell(
                 " ".join(self.args), stdout=PIPE, stderr=PIPE, env=self.env
@@ -363,7 +414,105 @@ class AsyncProc(Proc):
         return self.returncode is None
 
 
-class SyncProc:
+class SyncProc(Proc):
+    def __new__(cls, *args: Any, **kwargs: Any) -> "SyncProc":
+        return object.__new__(cls)
+
+    def __init__(
+        self,
+        *args: str,
+        timeout: MaybeNumber = None,
+        dunstifier: Optional[Dunstifier] = None,
+        shell: bool = False,
+        env: Optional[dict[str, str]] = None,
+        **_: Any,
+    ) -> None:
+        self.args = args
+        self.proc: Optional[Process] = None
+        self._timeout = timeout
+        self.dunstifier = dunstifier or self.default_dunstifier
+        self.shell = shell
+        self.env = env
+        self._is_running = False
+        self._rc: MaybeInt = None
+
+    def clone(
+        self,
+        *args: str,
+        timeout: MaybeNumber = None,
+        dunstifier: Optional[Dunstifier] = None,
+        shell: bool = False,
+        env: Optional[dict[str, str]] = None,
+    ) -> "SyncProc":
+        return SyncProc(
+            *self.args,
+            timeout=self.timeout,
+            dunstifier=self.dunstifier,
+            shell=self.shell,
+            env=self.env,
+        )
+
+    @property
+    def timeout(self) -> Number:
+        timeout = self._timeout or self.default_timeout
+        return self.calc_timeout(timeout)
+
+    def run(self) -> ProcMsg:
+        res: ProcMsg = {"cmd": self.cmd, "msg": None, "rc": None, "duration": 0}  # FIXME
+        cmd = self.cmd if self.shell else self.args
+        self._is_running = True
+        try:
+            p = subprocess.run(
+                cmd,
+                timeout=self.timeout,
+                text=True,
+                shell=self.shell,
+                env=self.env,
+                stdout=PIPE,
+                stderr=PIPE,
+            )
+        except subprocess.TimeoutExpired:
+            self._rc = Proc.rc_timed_out
+            res["rc"] = Proc.rc_timed_out
+            res["msg"] = Proc.timeout_msg
+            self._is_running = False
+            return res
+        except Exception as e:
+            self._rc = Proc.rc_error
+            res["rc"] = Proc.rc_error
+            res["msg"] = str(e)
+            self._is_running = False
+            return res
+        self._is_running = False
+        self._rc = p.returncode
+        res["rc"] = p.returncode
+        if not p.returncode:
+            return res
+        try:
+            stdout, stderr = p.communicate(timeout=self.timeout)
+        except AttributeError:
+            stdout, stderr = p.stdout, p.stderr
+        if not stdout and not stderr:
+            return res
+        elif not stdout:
+            msg = stderr
+        elif not stderr:
+            msg = stdout
+        else:
+            msg = "stdout: [{stdout}]. stderr: [{stderr}]"
+        res["msg"] = msg
+        return res
+
+    @property
+    def is_running(self) -> bool:
+        return self._is_running
+
+    @property
+    def returncode(self) -> MaybeInt:
+        return self._rc
+
+
+class LegacySyncProc:
 
     timeout = 2
 
@@ -398,7 +547,7 @@ class SyncProc:
             default_args = (default_arg,)
         else:
             default_args = tuple(default_args)
-        return SyncProc(
+        return LegacySyncProc(
             *self.args,
             *args,
             stop=stop if stop else self._stop,
@@ -453,42 +602,42 @@ class SyncProc:
         return str(self)
 
 
-_feh = SyncProc("feh", "--bg-fill", default_arg=os.path.expanduser("~/.wallpaper"))
-_setxkbmap = SyncProc("setxkbmap", default_args=("de", "deadacute"), shell=True)
-_unclutter = SyncProc("unclutter", "-root", "-idle", default_arg="3", bg=True)
-_polkit_agent = SyncProc(
+_feh = LegacySyncProc("feh", "--bg-fill", default_arg=os.path.expanduser("~/.wallpaper"))
+_setxkbmap = LegacySyncProc("setxkbmap", default_args=("de", "deadacute"), shell=True)
+_unclutter = LegacySyncProc("unclutter", "-root", "-idle", default_arg="3", bg=True)
+_polkit_agent = LegacySyncProc(
     "/usr/lib/policykit-1-gnome/polkit-gnome-authentication-agent-1", bg=True
 )
-_picom = SyncProc("picom", bg=True)
-_xfce4_power_manager = SyncProc("xfce4-power-manager", bg=True)
-_screensaver = SyncProc("cinnamon-screensaver", bg=True)
-_screensaver_cmd = SyncProc("/home/lars/bin/lock-screen", name="lock_cmd")
+_picom = LegacySyncProc("picom", bg=True)
+_xfce4_power_manager = LegacySyncProc("xfce4-power-manager", bg=True)
+_screensaver = LegacySyncProc("cinnamon-screensaver", bg=True)
+_screensaver_cmd = LegacySyncProc("/home/lars/bin/lock-screen", name="lock_cmd")
 # screensaver_cmd = Proc("cinnamon-screensaver-command", default_arg="--lock", name="lock cmd")
-_xss_lock = SyncProc(
+_xss_lock = LegacySyncProc(
     "xss-lock", "-l", "-v", "--", default_args=(_screensaver_cmd.get_args()), bg=True
 )
-_volti = SyncProc("volti", bg=True)
-_shiftred = SyncProc("shiftred", default_arg="load-config")
-_network_manager = SyncProc("nm-applet", bg=True)
-_rofi_pass = SyncProc("rofi-pass")
-_toggle_unclutter = SyncProc("toggle-unclutter")
-_opacity = SyncProc("transset", "--actual")
-_rofi = SyncProc("rofi", "-i", "-show")
-_rofi_pass = SyncProc("rofi-pass")
-_terminal = SyncProc("xfce4-terminal", default_args=["-e", "zsh"])
-_rofimoji = SyncProc("rofimoji")
-_volume = SyncProc("configure-volume")
-_systemctl_user = SyncProc("systemctl", "--user", "restart")
-_pause_dunst = SyncProc("killall", "-SIGUSR1", "dunst")
-_resume_dunst = SyncProc("killall", "-SIGUSR2", "dunst")
-_bluetooth = SyncProc("blueman-applet", bg=True)
-_nextcloud_sync = SyncProc("nextcloud", bg=True)
-_signal_desktop = SyncProc("signal-desktop", bg=True)
-_kde_connect = SyncProc("kdeconnect-indicator", bg=True)
-_dunstify = SyncProc("dunstify")
-_borg_backup = SyncProc("pkexec", "backup-with-borg", "start", bg=True)
-_systemctl = SyncProc("pkexec", "systemctl", bg=True)
-_fakecam = SyncProc("fakecam", default_args=["start"], bg=True)
+_volti = LegacySyncProc("volti", bg=True)
+_shiftred = LegacySyncProc("shiftred", default_arg="load-config")
+_network_manager = LegacySyncProc("nm-applet", bg=True)
+_rofi_pass = LegacySyncProc("rofi-pass")
+_toggle_unclutter = LegacySyncProc("toggle-unclutter")
+_opacity = LegacySyncProc("transset", "--actual")
+_rofi = LegacySyncProc("rofi", "-i", "-show")
+_rofi_pass = LegacySyncProc("rofi-pass")
+_terminal = LegacySyncProc("xfce4-terminal", default_args=["-e", "zsh"])
+_rofimoji = LegacySyncProc("rofimoji")
+_volume = LegacySyncProc("configure-volume")
+_systemctl_user = LegacySyncProc("systemctl", "--user", "restart")
+_pause_dunst = LegacySyncProc("killall", "-SIGUSR1", "dunst")
+_resume_dunst = LegacySyncProc("killall", "-SIGUSR2", "dunst")
+_bluetooth = LegacySyncProc("blueman-applet", bg=True)
+_nextcloud_sync = LegacySyncProc("nextcloud", bg=True)
+_signal_desktop = LegacySyncProc("signal-desktop", bg=True)
+_kde_connect = LegacySyncProc("kdeconnect-indicator", bg=True)
+_dunstify = LegacySyncProc("dunstify")
+_borg_backup = LegacySyncProc("pkexec", "backup-with-borg", "start", bg=True)
+_systemctl = LegacySyncProc("pkexec", "systemctl", bg=True)
+_fakecam = LegacySyncProc("fakecam", default_args=["start"], bg=True)
 
 
 feh = Proc("feh", "--bg-fill", os.path.expanduser("~/.wallpaper"))
@@ -502,6 +651,7 @@ screensaver_cmd = Proc("/home/lars/bin/lock-screen")
 xss_lock = Proc("xss-lock", "-l", "-v", "--", " ".join(screensaver_cmd.args), bg=True)
 shiftred = Proc("shiftred", "load-config")
 start_dunst = Proc("systemctl", "--user", "restart", "dunst")
+resume_dunst = Proc("killall", "-SIGUSR2", "dunst")
 start_picom = Proc("systemctl", "--user", "restart", "picom")
 bluetooth = Proc("blueman-applet", bg=True)
 nextcloud_sync = Proc("nextcloud", bg=True)

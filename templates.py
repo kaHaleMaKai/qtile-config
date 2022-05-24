@@ -50,11 +50,12 @@ async def render(
     t = get_template(src)
     src_vars = get_vars(src, overrides)
 
+    _content = await t.render_async(**src_vars)
     if keep_comments and keep_empty:
-        content = await t.render_async(**src_vars)
+        content = _content
     else:
         lines = []
-        async for line in t.render_async(**src_vars).split("\n"):
+        for line in _content.split("\n"):
             if not line.strip():
                 if keep_empty:
                     lines.append(line)

@@ -82,21 +82,24 @@ def is_laptop_connected() -> bool:
 
 
 class RingBuffer:
-    def __init__(self, size: int, default=None):
+    def __init__(self, size: int, default=None, no_repeat=False):
         self.size = size
         self.buffer = [default] * size
         self.pointer = -1
         self.data_length = 0
         self.nr_of_pops = 0
+        self.no_repeat = no_repeat
 
     def __len__(self):
         return self.data_length
 
     def add(self, el):
+        if self.no_repeat and self.current == el:
+            return
         self.data_length = min(self.data_length + 1, self.size)
         self.pointer = (self.pointer + 1) % self.size
         if el is not None:
-            self.buffer[self.pointer] = el
+            self.current = el
             self.nr_of_pops = 0
 
     def backward(self):
@@ -104,7 +107,7 @@ class RingBuffer:
             return None
         self.data_length -= 1
         self.pointer = (self.pointer - 1) % self.size
-        el = self.buffer[self.pointer]
+        el = self.current
         self.nr_of_pops += 1
         return el
 
@@ -113,13 +116,21 @@ class RingBuffer:
             return None
         self.nr_of_pops -= 1
         self.add(None)
+        return self.current
+
+    @property
+    def current(self):
         return self.buffer[self.pointer]
+
+    @current.setter
+    def current(self, el):
+        self.buffer[self.pointer] = el
 
     def __repr__(self):
         return str(self.buffer)
 
 
-group_history = RingBuffer(100)
+group_history = RingBuffer(100, no_repeat=True)
 
 
 def go_to_group(group):
@@ -360,11 +371,11 @@ async def reload_qtile(qtile: Qtile) -> None:
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
     qtile.cmd_reload_config()
-    logger.critical("finished reloading config (async)")
+    logger.info("finished reloading config (async)")
 
 
 def sync_reload_qtile(qtile: Qtile) -> None:
-    logger.critical("reloading config (sync)")
+    logger.info("reloading config (sync)")
     path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
     procs.Proc(
@@ -378,7 +389,7 @@ def sync_reload_qtile(qtile: Qtile) -> None:
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
     qtile.cmd_reload_config()
-    logger.critical("finished reloading config (sync)")
+    logger.info("finished reloading config (sync)")
 
 
 @lazy.function

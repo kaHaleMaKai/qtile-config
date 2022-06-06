@@ -206,4 +206,4 @@ async def start_teams_meeting(window: Window) -> None:
         and isinstance(window.name, str)
         and re.search(r"\(Meeting\).*Microsoft Teams.*Vivaldi", window.name)
     ):
-        await procs.fakecam.run()
+        await procs.fakecam.run_once()

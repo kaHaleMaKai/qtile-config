@@ -1,4 +1,5 @@
 import os
+import sys
 import re
 import yaml
 import pywal
@@ -48,6 +49,7 @@ def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
             line,
         )
         if not m:
+            continue
             raise ValueError(f"cannot parse line '{line}'")
         mon = m.group("monitor")
         data = {name: int(m.group(name)) for name in ("width", "height", "xoffset", "yoffset")}
@@ -69,9 +71,10 @@ def get_screens() -> ScreenDict:
     return screens
 
 
-screens = get_screens()
-res = [{"width": s["width"], "height": s["height"]} for s in screens["screens"].values()]
-num_screens = len(screens["screens"])
+if "config" in sys.modules.keys():
+    screens = get_screens()
+    res = [{"width": s["width"], "height": s["height"]} for s in screens["screens"].values()]
+    num_screens = len(screens["screens"])
 
 
 def is_laptop_connected() -> bool:

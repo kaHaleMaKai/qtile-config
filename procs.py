@@ -194,6 +194,10 @@ class Proc(ABC):
     def clone(self) -> "Proc":
         return self
 
+    async def run_once(self) -> None:
+        if not self.is_running:
+            await self.run()
+
     async def run(self) -> None:
         if self.is_running:
             raise ValueError(
@@ -456,6 +460,10 @@ class SyncProc(Proc):
     def timeout(self) -> Number:
         timeout = self._timeout or self.default_timeout
         return self.calc_timeout(timeout)
+
+    def run_once(self) -> Optional[ProcMsg]:
+        if not self.is_running:
+            return self.run()
 
     def run(self) -> ProcMsg:
         res: ProcMsg = {"cmd": self.cmd, "msg": None, "rc": None, "duration": 0}  # FIXME

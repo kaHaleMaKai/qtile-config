@@ -244,19 +244,7 @@
     mouse_left_click = close_current
     mouse_middle_click = do_action
     mouse_right_click = close_all
-
-# Experimental features that may or may not work correctly. Do not expect them
-# to have a consistent behaviour across releases.
-[experimental]
-    # Calculate the dpi to use on a per-monitor basis.
-    # If this setting is enabled the Xft.dpi value will be ignored and instead
-    # dunst will attempt to calculate an appropriate dpi value for each monitor
-    # using the resolution and physical size. This might be useful in setups
-    # where there are multiple screens with very different dpi values.
-    per_monitor_dpi = false
-
-[shortcuts]
-
+    #
     # Shortcuts are specified as [modifier+][modifier+]...key
     # Available modifiers are "ctrl", "mod1" (the alt-key), "mod2",
     # "mod3" and "mod4" (windows-key).
@@ -276,6 +264,17 @@
 
     # Context menu.
     context = mod4+ctrl+shift+period
+
+
+# Experimental features that may or may not work correctly. Do not expect them
+# to have a consistent behaviour across releases.
+[experimental]
+    # Calculate the dpi to use on a per-monitor basis.
+    # If this setting is enabled the Xft.dpi value will be ignored and instead
+    # dunst will attempt to calculate an appropriate dpi value for each monitor
+    # using the resolution and physical size. This might be useful in setups
+    # where there are multiple screens with very different dpi values.
+    per_monitor_dpi = false
 
 {% for name, values in urgency|dictsort(true) %}
 [urgency_{{ name }}]

@@ -50,7 +50,7 @@ class CapsLockIndicator(base.ThreadPoolText):
         try:
             output = self.call_process(["xset", "q"])
         except subprocess.CalledProcessError as err:
-            output = err.output.decode()
+            output = err.output
         if not output.startswith("Keyboard"):
             return
         m = re.search(r"Caps\s+Lock:\s*(?P<state>\w*)", output)

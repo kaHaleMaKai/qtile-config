@@ -21,11 +21,20 @@ from pathlib import Path
 
 # import dbus_next
 
+if util.is_light_theme:
+    background = color.WHITE
+    mid_color = color.BRIGHT_GRAY
+    foreground = color.DARK_GRAY
+else:
+    background = None
+    mid_color = color.DARK_GRAY
+    foreground = color.BRIGHT_GRAY
+
 
 settings = dict(
-    background=None,
+    background=background,
     borderwidth=0,
-    foreground=color.BRIGHT_GRAY,
+    foreground=foreground,
 )
 
 
@@ -108,7 +117,7 @@ class DotGraph(_GenPollText):
 
 
 def space():
-    return widget.Spacer(length=10)
+    return widget.Spacer(length=10, background=background)
 
 
 def get_num_procs():
@@ -190,7 +199,7 @@ class BorgBackupWidget(CheckAndWarnWidget):
         )
 
 
-borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10)
+borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10, background=background)
 
 
 def notify_checkclock_pause(is_paused: bool, _: str):
@@ -201,6 +210,7 @@ def notify_checkclock_pause(is_paused: bool, _: str):
 paused_text = "<big>⏸</big>"
 checkclock_id = "--replace=840431"
 checkclock_args = dict(
+    background=background,
     update_interval=5,
     paused_text=paused_text,
     time_format="%k:%M",
@@ -231,8 +241,10 @@ def get_bar(screen_idx):
 
     group_settings = {
         "highlight_method": "block",
-        "active": color.BRIGHT_ORANGE,
-        "inactive": color.DARK_GRAY,
+        "border": color.DARK_ORANGE,
+        "border_width": 5,
+        "active": color.DARK_ORANGE if util.is_light_theme else color.BRIGHT_ORANGE,
+        "inactive": mid_color,
         "this_screen_border": color.DARK_BLUE_GRAY,
         "this_current_screen_border": color.MID_BLUE_GRAY,
         "hide_unused": False,
@@ -257,7 +269,7 @@ def get_bar(screen_idx):
             active_text="✔",
             inactive_text="",
             active_color=color.BRIGHT_ORANGE,
-            inactive_color=color.BLACK,
+            inactive_color=color.WHITE if util.is_light_theme else color.BLACK,
             **settings,
         )
         widgets.append(current_screen)
@@ -277,9 +289,10 @@ def get_bar(screen_idx):
 
     task_args = settings.copy()
     task_args.update(
-        highlight_method="block",
+        highlight_method="border" if util.is_light_theme else "block",
         border=color.DARK_ORANGE,
-        foreground=color.BRIGHT_GRAY,
+        foreground=foreground,
+        background=background,
     )
     task_list = widget.TaskList(**task_args)
     widgets.append(task_list)
@@ -334,6 +347,7 @@ def get_bar(screen_idx):
     num_procs = widget.GenPollText(
         func=get_num_procs,
         update_interval=2,
+        background=background,
         # mouse_callbacks={"Button3": menu.show}
     )
     widgets.append(num_procs)

@@ -7,6 +7,7 @@ import procs
 import asyncio
 import subprocess
 from itertools import chain
+from pathlib import Path
 from typing import Tuple, Iterable, Dict, Union, TypedDict
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
@@ -27,10 +28,17 @@ class ScreenDict(TypedDict):
     screens: Dict[str, Dict[str, int]]
 
 
+THEME_BG_KEY = "QTILE_LIGHT_THEME"
 in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
 group_dict = {name: Group(name) for name in "123456789abcdef"}
 groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
 laptop_display = "eDP-1"
+light_theme_marker_file = Path("/tmp/qtile-light-theme")
+is_light_theme = os.environ.get(THEME_BG_KEY, "") == "1"
+if is_light_theme:
+    light_theme_marker_file.touch()
+else:
+    light_theme_marker_file.unlink(missing_ok=True)
 
 
 def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
@@ -296,6 +304,31 @@ def get_wal_colors():
     }
 
 
+def get_light_colors() -> dict[str, str | dict[str, str]]:
+    return {
+        "bg": "#fffffe",
+        "fg": "#000001",
+        "colors": [
+            "#000000",
+            "#cd0000",
+            "#00cd00",
+            "#cdcd00",
+            "#0000cd",
+            "#cd00cd",
+            "#00cdcd",
+            "#e5e5e5",
+            "#7f7f7f",
+            "#ff0000",
+            "#00ff00",
+            "#ffff00",
+            "#5c5cff",
+            "#ff00ff",
+            "#00ffff",
+            "#ffffff",
+        ],
+    }
+
+
 def get_default_vars(**overrides):
     default_vars = {
         "defaults": {
@@ -303,7 +336,7 @@ def get_default_vars(**overrides):
             "res": res,
             "in_debug_mode": in_debug_mode,
         },
-        "wal": get_wal_colors(),
+        "wal": get_light_colors() if is_light_theme else get_wal_colors(),
     }
     default_vars.update(**overrides)
     return default_vars
@@ -374,7 +407,7 @@ async def reload_qtile(qtile: Qtile) -> None:
     logger.info("finished reloading config (async)")
 
 
-def sync_reload_qtile(qtile: Qtile) -> None:
+def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
     logger.info("reloading config (sync)")
     path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
@@ -388,8 +421,17 @@ def sync_reload_qtile(qtile: Qtile) -> None:
         path_env = f.read()
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
+    os.environ[THEME_BG_KEY] = "1" if light_theme else ""
     qtile.cmd_reload_config()
     logger.info("finished reloading config (sync)")
+
+
+def sync_reload_qtile(qtile: Qtile) -> None:
+    sync_reload_qtile_helper(qtile, light_theme=False)
+
+
+def sync_reload_qtile_light_theme(qtile: Qtile) -> None:
+    sync_reload_qtile_helper(qtile, light_theme=True)
 
 
 @lazy.function

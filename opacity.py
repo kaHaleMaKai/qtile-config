@@ -1,6 +1,7 @@
 from libqtile import hook
 from libqtile.backend.x11.window import Window
 from libqtile.log_utils import logger
+from util import is_light_theme
 
 full_opacities = {
     "class": {
@@ -61,6 +62,11 @@ partial_opacities = {
     "name": {},
     "type": {},
 }
+
+if is_light_theme:
+    for apps in partial_opacities.values():
+        for app in apps:
+            apps[app] = 1.0
 
 
 def set_opacities(window: Window, dim: bool = True, overwrite: bool = False) -> None:

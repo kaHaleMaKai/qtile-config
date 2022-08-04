@@ -26,7 +26,7 @@ ScrollingBar=TERMINAL_SCROLLBAR_NONE
 BackgroundDarkness=1.000000
 ColorPalette={{ wal.colors|join(';') }}
 TitleMode=TERMINAL_TITLE_REPLACE
-ColorBackground={{ bg|default(wal.bg) }}
+ColorBackground={{ wal.bg }}
 ColorCursor={{ wal.color }}
 ColorForeground={{ wal.fg }}
 FontName=hack 9
@@ -46,4 +46,3 @@ MiscShowUnsafePasteDialog=FALSE
 
 #j2: vim: ft=dosini.j2
 # vim: ft=dosini
-

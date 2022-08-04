@@ -16,9 +16,11 @@ from procs import Proc
 import color
 from floating_rules import get_floating_rules
 from keys import keys, mod_key
-from opacity import add_opacity, partial_opacities  # NOQA
-from bar import get_bar
 import util
+from opacity import partial_opacities  # NOQA
+if not util.is_light_theme:
+    from opacity import add_opacity
+from bar import get_bar
 
 
 scratchpad = ScratchPad(

@@ -19,6 +19,8 @@ import procs
 import re
 from pathlib import Path
 
+PARTITIONS = ["/", "/home", "/tmp", "/var", "/boot", "/boot/efi", "/var/lib/docker"]
+
 # import dbus_next
 
 if util.is_light_theme:
@@ -247,7 +249,7 @@ def get_bar(screen_idx):
         "inactive": mid_color,
         "this_screen_border": color.DARK_BLUE_GRAY,
         "this_current_screen_border": color.MID_BLUE_GRAY,
-        "hide_unused": False,
+        "hide_unused": True,
         "urgent_border": color.BRIGHT_RED,
         "disable_drag": True,
     }
@@ -301,9 +303,11 @@ def get_bar(screen_idx):
         widgets.append(borg_widget)
         widgets.append(checkclock_widget)
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
+        for partition in PARTITIONS:
+            df = widget.DF(visible_on_warn=True, partition=partition, warn_color=color.BRIGHT_ORANGE)
+            widgets.append(df)
     else:
         widgets.append(checkclock_widget.new_companion())
-        pass
 
     widgets.append(space())
 

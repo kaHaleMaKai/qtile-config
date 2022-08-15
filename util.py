@@ -6,9 +6,10 @@ import pywal
 import procs
 import asyncio
 import subprocess
+from qtile_extras import widget
 from itertools import chain
 from pathlib import Path
-from typing import Tuple, Iterable, Dict, Union, TypedDict
+from typing import Tuple, Iterable, Dict, Union, TypedDict, TypeVar, Type
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
 from libqtile.group import _Group
@@ -21,6 +22,12 @@ import templates
 from color import complement, add_hashtag
 
 from libqtile.log_utils import logger
+
+W = TypeVar("W")
+
+
+def with_decorations(cls: Type[W]) -> Type[W]:
+    return widget.modify(cls, initialise=False)
 
 
 class ScreenDict(TypedDict):

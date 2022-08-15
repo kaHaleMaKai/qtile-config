@@ -24,6 +24,7 @@ from libqtile.widget import base
 import re
 import subprocess
 from procs import _dunstify
+from util import with_decorations
 
 
 ID = 1928398723
@@ -31,6 +32,7 @@ SUMMARY = "Caps_Lock on"
 MSG = "| A⇬ |"
 
 
+@with_decorations
 class CapsLockIndicator(base.ThreadPoolText):
     """Really simple widget to show the current Caps Lock state."""
 

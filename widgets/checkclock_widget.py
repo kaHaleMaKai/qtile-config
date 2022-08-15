@@ -14,8 +14,10 @@ from .checkclock import (
     as_hours_and_minutes,
     get_previous_date,
 )
+from util import with_decorations
 
 
+@with_decorations
 class CheckclockWidget(ThreadPoolText):
 
     orientations = ORIENTATION_HORIZONTAL

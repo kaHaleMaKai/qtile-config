@@ -2,12 +2,14 @@ import os
 import math
 import psutil
 import sqlite3
+from functools import wraps
 from typing import Optional, Any
-from libqtile import bar, widget
+from libqtile import bar
+from qtile_extras import widget
+from qtile_extras.widget.decorations import RectDecoration
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
-
 from widgets.checkclock_widget import CheckclockWidget
 from widgets.check_and_warn import CheckAndWarnWidget, CheckState
 
@@ -26,18 +28,20 @@ if util.is_light_theme:
     mid_color = color.BRIGHT_GRAY
     foreground = color.DARK_GRAY
 else:
-    background = None
+    background = color.DARK_GRAY
     mid_color = color.DARK_GRAY
     foreground = color.BRIGHT_GRAY
 
+decor = [RectDecoration(colour=background, radius=13, filled=True, padding_y=0)]
 
 settings = dict(
-    background=background,
     borderwidth=0,
     foreground=foreground,
+    padding=2,
 )
 
 
+@util.with_decorations
 class ArrowGraph(_GenPollText):
 
     defaults = [
@@ -77,6 +81,7 @@ class ArrowGraph(_GenPollText):
         return "<tt><big>{}{}</big></tt>".format(*arrows)
 
 
+@util.with_decorations
 class DotGraph(_GenPollText):
 
     defaults = [
@@ -117,7 +122,7 @@ class DotGraph(_GenPollText):
 
 
 def space():
-    return widget.Spacer(length=10, background=background)
+    return widget.Spacer(length=10)
 
 
 def get_num_procs():
@@ -143,6 +148,7 @@ def get_net_throughput():
     return up, down
 
 
+@util.with_decorations
 class BorgBackupWidget(CheckAndWarnWidget):
 
     borg_state_msgs = {
@@ -199,7 +205,7 @@ class BorgBackupWidget(CheckAndWarnWidget):
         )
 
 
-borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10, background=background)
+borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10, **settings)
 
 
 def notify_checkclock_pause(is_paused: bool, _: str):
@@ -210,7 +216,6 @@ def notify_checkclock_pause(is_paused: bool, _: str):
 paused_text = "<big>⏸</big>"
 checkclock_id = "--replace=840431"
 checkclock_args = dict(
-    background=background,
     update_interval=5,
     paused_text=paused_text,
     time_format="%k:%M",
@@ -225,8 +230,8 @@ checkclock_args = dict(
     hooks={
         "on_rollover": lambda _: procs._dunstify(checkclock_id, "🔄 checkclock"),
     },
+    **settings,
 )
-checkclock_args.update(settings)
 
 db_key = "QTILE_CHECKCLOCK_DB"
 if db_key in os.environ:
@@ -240,6 +245,7 @@ def get_bar(screen_idx):
     widgets = []
 
     group_settings = {
+        **settings,
         "highlight_method": "block",
         "border": color.DARK_ORANGE,
         "border_width": 5,
@@ -254,14 +260,16 @@ def get_bar(screen_idx):
     if util.num_screens > 1:
         if is_primary:
             group_box = widget.GroupBox(
-                visible_groups=[ch for ch in "123456789"], **settings, **group_settings
+                visible_groups=[ch for ch in "123456789"],
+                **group_settings,
             )
         else:
             group_box = widget.GroupBox(
-                visible_groups=[ch for ch in "abcdef"], **settings, **group_settings
+                visible_groups=[ch for ch in "abcdef"],
+                **group_settings,
             )
     else:
-        group_box = widget.GroupBox(**settings, **group_settings)
+        group_box = widget.GroupBox(**group_settings)
     widgets.append(group_box)
 
     if util.num_screens > 1:
@@ -279,20 +287,17 @@ def get_bar(screen_idx):
         name=f"prompt-{screen_idx}",
         prompt="» ",
         fontsize=12,
-        padding=10,
         cursor_color=color.MID_ORANGE,
         cursorblink=0.8,
-        foreground=color.MID_ORANGE,
+        **settings,
     )
     prompt = widget.Prompt(**prompt_args)
     widgets.append(prompt)
 
-    task_args = settings.copy()
-    task_args.update(
+    task_args = settings | dict(
         highlight_method="border" if util.is_light_theme else "block",
         border=color.DARK_ORANGE,
         foreground=foreground,
-        background=background,
     )
     task_list = widget.TaskList(**task_args)
     widgets.append(task_list)
@@ -300,7 +305,7 @@ def get_bar(screen_idx):
     if is_primary:
         widgets.append(borg_widget)
         widgets.append(checkclock_widget)
-        widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
+        widgets.append(widget.Systray(icon_size=18, **settings))
     else:
         widgets.append(checkclock_widget.new_companion())
         pass
@@ -347,7 +352,7 @@ def get_bar(screen_idx):
     num_procs = widget.GenPollText(
         func=get_num_procs,
         update_interval=2,
-        background=background,
+        **settings,
         # mouse_callbacks={"Button3": menu.show}
     )
     widgets.append(num_procs)
@@ -357,4 +362,10 @@ def get_bar(screen_idx):
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
     widgets.append(layout)
 
-    return bar.Bar(widgets=widgets, size=26, opacity=1 if util.is_light_theme else 0.9)
+    return bar.Bar(
+        widgets=widgets,
+        size=26,
+        background=color.TRANSPARENT,
+        border_width=5,
+        border_color=color.TRANSPARENT,
+    )

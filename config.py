@@ -174,6 +174,10 @@ async def autostart() -> None:
                 util.render_terminalrc(),
             ]
         )
+    if util.is_light_theme:
+        ps.append(procs.stop_picom)
+    else:
+        ps.append(procs.start_picom)
     await Proc.await_many(*ps)
 
 

@@ -63,12 +63,6 @@ partial_opacities = {
     "type": {},
 }
 
-if is_light_theme:
-    for apps in partial_opacities.values():
-        for app in apps:
-            apps[app] = 1.0
-
-
 def set_opacities(window: Window, dim: bool = True, overwrite: bool = False) -> None:
     if hasattr(window, "_full_opacity") and not overwrite:
         return

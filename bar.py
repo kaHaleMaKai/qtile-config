@@ -357,4 +357,4 @@ def get_bar(screen_idx):
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
     widgets.append(layout)
 
-    return bar.Bar(widgets=widgets, size=26, opacity=0.9)
+    return bar.Bar(widgets=widgets, size=26, opacity=1 if util.is_light_theme else 0.9)

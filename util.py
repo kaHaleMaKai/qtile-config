@@ -8,7 +8,7 @@ import asyncio
 import subprocess
 from itertools import chain
 from pathlib import Path
-from typing import Tuple, Iterable, Dict, Union, TypedDict
+from typing import Iterable, TypedDict, Any
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
 from libqtile.group import _Group
@@ -25,7 +25,7 @@ from libqtile.log_utils import logger
 
 class ScreenDict(TypedDict):
     _primary: str
-    screens: Dict[str, Dict[str, int]]
+    screens: dict[str, dict[str, int]]
 
 
 THEME_BG_KEY = "QTILE_LIGHT_THEME"
@@ -158,7 +158,7 @@ def go_to_group(group):
 
 def get_group_and_screen_idx(
     qtile: Qtile, offset: int, skip_invisible=False
-) -> Tuple[_Group, int]:
+) -> tuple[_Group, int]:
     if offset < -1 or offset > 1:
         raise ValueError(f"wrong value supportetd. expected: offset in (-1, 0, 1). got: {offset}")
     if skip_invisible or not offset:
@@ -167,7 +167,7 @@ def get_group_and_screen_idx(
         return _get_group_and_screen_idx_static(qtile, offset)
 
 
-def _get_group_and_screen_idx_static(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
+def _get_group_and_screen_idx_static(qtile: Qtile, offset: int) -> tuple[_Group, int]:
     group = qtile.current_group.name
     idx = (int(group, 16) - 1 + offset) % len(groups)
     next_group = groups[idx].name
@@ -175,7 +175,7 @@ def _get_group_and_screen_idx_static(qtile: Qtile, offset: int) -> Tuple[_Group,
     return qtile.groups_map[next_group], screen
 
 
-def _get_group_and_screen_idx_dynamic(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
+def _get_group_and_screen_idx_dynamic(qtile: Qtile, offset: int) -> tuple[_Group, int]:
     current_group = qtile.current_group
     skip_empty = not bool(current_group.windows)
     if offset < 0:
@@ -463,3 +463,42 @@ def sync_reload_qtile_light_theme(qtile: Qtile) -> None:
 @lazy.function
 def lock_screen(qtile: Qtile) -> None:
     procs.screensaver_cmd.sync().run()
+
+
+sticky_windows: list[tuple[Window, _Group, bool]] = []
+
+
+def stick_win(qtile: Qtile) -> None:
+    logger.warn("sticking window")
+    global sticky_windows
+    sticky_windows.append(
+        (qtile.current_window, qtile.current_group, qtile.current_window.floating)
+    )
+    qtile.current_window.floating = True
+
+
+def unstick_win(qtile: Qtile) -> None:
+    global sticky_windows
+    window = qtile.current_window
+    if not window or not sticky_windows:
+        raise ValueError(f"window is not sticky: {window}")
+        return
+    idx, group, was_floating = get_sticky_index_and_group(window)
+    sticky_windows.pop(idx)
+    window.togroup(group.name)
+    window.floating = was_floating
+
+
+def toggle_sticky_window(qtile: Qtile) -> None:
+    try:
+        unstick_win(qtile)
+    except ValueError:
+        stick_win(qtile)
+
+
+def get_sticky_index_and_group(window: Window) -> tuple[int, _Group, bool] | None:
+    global sticky_windows
+    res = [(i, tup[1], tup[2]) for i, tup in enumerate(sticky_windows) if tup[0] == window]
+    if not res:
+        return []
+    return res[0]

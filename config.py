@@ -221,3 +221,13 @@ def cycle_to_next_client_on_empty_group(window: Window) -> None:
     util.group_history.add(g)
     qtile.cmd_to_screen(s)
     g.cmd_toscreen()
+
+
+@hook.subscribe.setgroup
+def move_sticky_windows():
+    from libqtile import qtile
+
+    window: Window = qtile.current_window
+    for w, _, _ in util.sticky_windows:
+        w.togroup(qtile.current_group.name)
+    window.cmd_focus()

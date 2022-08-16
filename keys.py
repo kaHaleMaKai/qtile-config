@@ -18,6 +18,7 @@ from util import (
     history_back,
     history_forward,
     lock_screen,
+    toggle_sticky_window,
 )
 
 modifier_keys = {
@@ -153,6 +154,7 @@ keys = KeyList(
         "M-S-z": lazy.hide_show_bar,
         "M-n": lazy.window.toggle_minimize,
         "M-t": lazy.window.toggle_floating,
+        "M-S-t": lazy.function(toggle_sticky_window),
         "M-<space>": lazy.next_layout,
         "M-S-<space>": lazy.prev_layout,
         "M-C-<space>": lazy.layout.rotate,

@@ -40,6 +40,52 @@ settings = dict(
 )
 
 
+class GroupBox(widget.GroupBox):
+
+    defaults = [
+        (
+            "always_visible_groups",
+            (),
+            "groups that are visible even when hide_unused is set, and group is empty",
+        )
+    ]
+
+    def __init__(self, **config: Any) -> None:
+        super().__init__(**config)
+        self.add_defaults(GroupBox.defaults)
+
+    @property
+    def groups(self) -> list[str]:
+        if self.hide_unused:
+            if self.visible_groups:
+                return [
+                    g
+                    for g in self.qtile.groups
+                    if g.label
+                    and (
+                        ((g.windows or g.screen) and g.name in self.visible_groups)
+                        or g.name in self.always_visible_groups
+                    )
+                ]
+            else:
+                return [
+                    g
+                    for g in self.qtile.groups
+                    if g.label
+                    and ((g.windows or g.screen) or g.name in self.always_visible_groups)
+                ]
+        else:
+            if self.visible_groups:
+                return [
+                    g
+                    for g in self.qtile.groups
+                    if g.label
+                    and (g.name in self.visible_groups or g.name in self.always_visible_groups)
+                ]
+            else:
+                return [g for g in self.qtile.groups if g.label]
+
+
 class ArrowGraph(_GenPollText):
 
     defaults = [
@@ -255,15 +301,21 @@ def get_bar(screen_idx):
     }
     if util.num_screens > 1:
         if is_primary:
-            group_box = widget.GroupBox(
-                visible_groups=[ch for ch in "123456789"], **settings, **group_settings
+            group_box = GroupBox(
+                visible_groups=[ch for ch in "123456789"],
+                **settings,
+                always_visible_groups=("1"),
+                **group_settings,
             )
         else:
-            group_box = widget.GroupBox(
-                visible_groups=[ch for ch in "abcdef"], **settings, **group_settings
+            group_box = GroupBox(
+                visible_groups=[ch for ch in "abcdef"],
+                always_visible_groups=("f"),
+                **settings,
+                **group_settings,
             )
     else:
-        group_box = widget.GroupBox(**settings, **group_settings)
+        group_box = GroupBox(always_visible_groups=("1", "f"), **settings, **group_settings)
     widgets.append(group_box)
 
     if util.num_screens > 1:
@@ -304,7 +356,9 @@ def get_bar(screen_idx):
         widgets.append(checkclock_widget)
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
         for partition in PARTITIONS:
-            df = widget.DF(visible_on_warn=True, partition=partition, warn_color=color.BRIGHT_ORANGE)
+            df = widget.DF(
+                visible_on_warn=True, partition=partition, warn_color=color.BRIGHT_ORANGE
+            )
             widgets.append(df)
     else:
         widgets.append(checkclock_widget.new_companion())

@@ -18,6 +18,7 @@ from floating_rules import get_floating_rules
 from keys import keys, mod_key
 import util
 from opacity import partial_opacities  # NOQA
+
 if not util.is_light_theme:
     from opacity import add_opacity
 from bar import get_bar
@@ -203,6 +204,23 @@ def handle_floating_windows(window: Window) -> None:
 @hook.subscribe.client_new
 def handle_floating_for_new_clients(window: Window) -> None:
     return handle_floating_windows(window)
+
+
+@hook.subscribe.client_killed
+def cycle_to_next_client_on_empty_group(window: Window) -> None:
+    group = window.group
+    if len(group.windows) > 1:
+        return
+
+    qtile = window.qtile
+    current_group = window.group
+    g, s = util.get_group_and_screen_idx(qtile, -1, skip_invisible=True)
+    if g.name > current_group.name:
+        g = qtile.groups_map["1"]
+        s = 0
+    util.group_history.add(g)
+    qtile.cmd_to_screen(s)
+    g.cmd_toscreen()
 
 
 @hook.subscribe.client_name_updated

@@ -156,7 +156,18 @@ def go_to_group(group):
     return f
 
 
-def get_group_and_screen_idx(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
+def get_group_and_screen_idx(
+    qtile: Qtile, offset: int, skip_invisible=False
+) -> Tuple[_Group, int]:
+    if offset < -1 or offset > 1:
+        raise ValueError(f"wrong value supportetd. expected: offset in (-1, 0, 1). got: {offset}")
+    if skip_invisible or not offset:
+        return _get_group_and_screen_idx_dynamic(qtile, offset)
+    else:
+        return _get_group_and_screen_idx_static(qtile, offset)
+
+
+def _get_group_and_screen_idx_static(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
     group = qtile.current_group.name
     idx = (int(group, 16) - 1 + offset) % len(groups)
     next_group = groups[idx].name
@@ -164,11 +175,26 @@ def get_group_and_screen_idx(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
     return qtile.groups_map[next_group], screen
 
 
+def _get_group_and_screen_idx_dynamic(qtile: Qtile, offset: int) -> Tuple[_Group, int]:
+    current_group = qtile.current_group
+    skip_empty = not bool(current_group.windows)
+    if offset < 0:
+        next_group = current_group.get_previous_group(skip_empty)
+        if not skip_empty and not next_group.windows:
+            neighbour = next_group.get_previous_group(skip_empty=True)
+            next_group = neighbour.get_next_group(skip_empty=False)
+    else:
+        next_group = current_group.get_next_group(skip_empty)
+    name = next_group.name
+    screen = 0 if num_screens == 1 or name < "a" else 1
+    return next_group, screen
+
+
 def next_group() -> LazyCall:
     @lazy.function
     def f(qtile: Qtile):
         global group_history
-        g, s = get_group_and_screen_idx(qtile, +1)
+        g, s = get_group_and_screen_idx(qtile, +1, skip_invisible=True)
         group_history.add(g)
         qtile.cmd_to_screen(s)
         g.cmd_toscreen()
@@ -180,7 +206,7 @@ def prev_group() -> LazyCall:
     @lazy.function
     def f(qtile):
         global group_history
-        g, s = get_group_and_screen_idx(qtile, -1)
+        g, s = get_group_and_screen_idx(qtile, -1, skip_invisible=True)
         group_history.add(g)
         qtile.cmd_to_screen(s)
         g.cmd_toscreen()

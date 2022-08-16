@@ -208,26 +208,16 @@ def handle_floating_for_new_clients(window: Window) -> None:
 
 @hook.subscribe.client_killed
 def cycle_to_next_client_on_empty_group(window: Window) -> None:
-    group = window.group
-    if len(group.windows) > 1:
+    current_group = window.qtile.current_group
+    if len(current_group.windows) > 1 or window not in current_group.windows:
         return
 
     qtile = window.qtile
-    current_group = window.group
     g, s = util.get_group_and_screen_idx(qtile, -1, skip_invisible=True)
     if g.name > current_group.name:
         g = qtile.groups_map["1"]
         s = 0
+    util.group_history.backward()
     util.group_history.add(g)
     qtile.cmd_to_screen(s)
     g.cmd_toscreen()
-
-
-@hook.subscribe.client_name_updated
-async def start_teams_meeting(window: Window) -> None:
-    if (
-        window
-        and isinstance(window.name, str)
-        and re.search(r"\(Meeting\).*Microsoft Teams.*Vivaldi", window.name)
-    ):
-        await procs.fakecam.run_once()

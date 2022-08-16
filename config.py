@@ -203,7 +203,12 @@ def handle_floating_windows(window: Window) -> None:
 
 @hook.subscribe.client_new
 def handle_floating_for_new_clients(window: Window) -> None:
-    return handle_floating_windows(window)
+    handle_floating_windows(window)
+    from libqtile import qtile
+
+    for win in qtile.current_group.windows:
+        if win.floating:
+            win.cmd_bring_to_front()
 
 
 @hook.subscribe.client_killed

@@ -2,9 +2,13 @@ import os
 import math
 import psutil
 import sqlite3
-from typing import Optional, Any
+from typing import Optional, Any, TYPE_CHECKING
 from libqtile import bar
-from qtile_extras import widget
+
+if TYPE_CHECKING:
+    from libqtile import widget
+else:
+    from qtile_extras import widget
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
@@ -299,10 +303,14 @@ def get_bar(screen_idx):
         "hide_unused": True,
         "urgent_border": color.BRIGHT_RED,
         "disable_drag": True,
+        "font": "Hack Patched",
+        "fontsize": 18,
+        "markup": True,
     }
     if util.num_screens > 1:
         if is_primary:
             group_box = GroupBox(
+                name="groupbox-0",
                 visible_groups=[ch for ch in "123456789"],
                 **settings,
                 always_visible_groups=("1"),
@@ -310,13 +318,16 @@ def get_bar(screen_idx):
             )
         else:
             group_box = GroupBox(
+                name="groupbox-1",
                 visible_groups=[ch for ch in "abcdef"],
                 always_visible_groups=("f"),
                 **settings,
                 **group_settings,
             )
     else:
-        group_box = GroupBox(always_visible_groups=("1", "f"), **settings, **group_settings)
+        group_box = GroupBox(
+            always_visible_groups=("1", "f"), name="groupbox-0", **settings, **group_settings
+        )
     widgets.append(group_box)
 
     if util.num_screens > 1:
@@ -367,7 +378,12 @@ def get_bar(screen_idx):
 
     widgets.append(space())
 
-    battery = widget.UPowerWidget(**settings)
+    battery = widget.UPowerWidget(
+        border_charge_colour=color.BRIGHT_GREEN,
+        border_colour=color.DARK_ORANGE,
+        border_critical_colour=color.BRIGHT_RED,
+        **settings,
+    )
     widgets.append(battery)
     widgets.append(space())
 

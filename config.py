@@ -1,12 +1,14 @@
 import os
 import re
 import subprocess
+from pathlib import Path
 from libqtile.config import Screen, Group, Drag, Click, Match, ScratchPad, DropDown
 from libqtile.command import lazy
 from libqtile.core.manager import Qtile
 from libqtile import hook, layout
 from libqtile.backend.x11.window import Window, XWindow
-from typing import List, Callable  # noqa: F401
+from libqtile.group import _Group
+from typing import List, Callable, cast  # noqa: F401
 from libqtile.log_utils import logger
 
 # custom imports – parts of config
@@ -114,8 +116,12 @@ widget_defaults = dict(
     padding=3,
 )
 extension_defaults = widget_defaults.copy()
+wallpaper = Path("~/.wallpaper").expanduser().absolute()
 
-screens = [Screen(top=get_bar(idx)) for idx in range(util.num_screens)]
+screens = [
+    Screen(top=get_bar(idx), wallpaper=str(wallpaper), wallpaper_mode="stretch")
+    for idx in range(util.num_screens)
+]
 
 # Drag floating layouts.
 mouse = [
@@ -176,7 +182,7 @@ async def autostart_once() -> None:
 @hook.subscribe.startup
 async def autostart() -> None:
     logger.info("running startup")
-    ps = [procs.feh, procs.setxkbmap, procs.resume_dunst]
+    ps = [procs.setxkbmap, procs.resume_dunst]
     if not util.in_debug_mode:
         ps.extend(
             [
@@ -242,7 +248,30 @@ def cycle_to_next_client_on_empty_group(window: Window) -> None:
 def move_sticky_windows():
     from libqtile import qtile
 
-    window: Window = qtile.current_window
     for w, _, _ in util.sticky_windows:
         w.togroup(qtile.current_group.name)
-    window.cmd_focus()
+    window: Window | None = qtile.current_window
+    if window:
+        window.cmd_focus()
+
+
+@hook.subscribe.client_focus
+@hook.subscribe.client_new
+def set_group_icon(window: Window) -> None:
+    if not window:
+        from libqtile import qtile
+
+        qtile.current_group.cmd_set_label(None)
+        return
+
+    util.set_group_label_from_window_class(window)
+
+
+@hook.subscribe.client_killed
+def remove_group_icon(window: Window) -> None:
+    group = window.qtile.current_group
+    if group.windows <= 1:
+        group.cmd_set_label(None)
+
+
+setup_all_group_icons = hook.subscribe.restart(util.setup_all_group_icons)

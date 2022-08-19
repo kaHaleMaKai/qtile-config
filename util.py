@@ -8,7 +8,7 @@ import asyncio
 import subprocess
 from itertools import chain
 from pathlib import Path
-from typing import Iterable, TypedDict, Any
+from typing import Iterable, TypedDict, Any, cast
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
 from libqtile.group import _Group
@@ -27,6 +27,18 @@ class ScreenDict(TypedDict):
     _primary: str
     screens: dict[str, dict[str, int]]
 
+
+group_labels: dict[str, int] = {
+    "firefox": 0xE007,  # 0xf269,
+    "xfce4-terminal": 0xE795,
+    "vivaldi": 0xF57D,
+    "thunderbird": 0xF0E0,
+    "dbeaver": 0xF1C0,
+    "org.remmina.remmina": 0xF17A,
+    "pavucontrol": 0xF028,
+    "nextcloud": 0xF0C2,
+    "wpsoffice": 0xF00B,
+}
 
 THEME_BG_KEY = "QTILE_LIGHT_THEME"
 in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
@@ -430,6 +442,7 @@ async def reload_qtile(qtile: Qtile) -> None:
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
     qtile.cmd_reload_config()
+    setup_all_group_icons()
     logger.info("finished reloading config (async)")
 
 
@@ -449,6 +462,7 @@ def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
         os.environ["PATH"] = path_env.strip()
     os.environ[THEME_BG_KEY] = "1" if light_theme else ""
     qtile.cmd_reload_config()
+    setup_all_group_icons()
     logger.info("finished reloading config (sync)")
 
 
@@ -502,3 +516,21 @@ def get_sticky_index_and_group(window: Window) -> tuple[int, _Group, bool] | Non
     if not res:
         return []
     return res[0]
+
+
+def set_group_label_from_window_class(window: Window) -> None:
+    cls = window.get_wm_class()[1].lower()
+    int_label: int | None = group_labels.get(cls)
+    label = chr(int_label) if int_label else None
+    window.qtile.current_group.cmd_set_label(label)
+
+
+def setup_all_group_icons() -> None:
+    from libqtile import qtile
+
+    for group in qtile.groups_map.items():
+        group = cast(_Group, group)
+        if group.current_window:
+            set_group_label_from_window_class(group.current_window)
+        else:
+            group.cmd_set_label(None)

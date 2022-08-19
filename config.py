@@ -27,8 +27,18 @@ from bar import get_bar
 scratchpad = ScratchPad(
     "scratchpad",
     [
-        DropDown("signal", ["signal-desktop"], opacity=1, on_focus_lost_hide=True),
+        DropDown(
+            "signal",
+            ["signal-desktop"],
+            opacity=1,
+            on_focus_lost_hide=False,
+            x=0.05,
+            y=0,
+            width=0.9,
+            height=0.9,
+        ),
     ],
+    single=True,
 )
 
 groups = util.groups[:]

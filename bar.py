@@ -3,7 +3,8 @@ import math
 import psutil
 import sqlite3
 from typing import Optional, Any
-from libqtile import bar, widget
+from libqtile import bar
+from qtile_extras import widget
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from widgets.capslocker import CapsLockIndicator
@@ -354,6 +355,7 @@ def get_bar(screen_idx):
     if is_primary:
         widgets.append(borg_widget)
         widgets.append(checkclock_widget)
+        # widgets.append(widget.StatusNotifier(icon_size=18, padding=8))
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
         for partition in PARTITIONS:
             df = widget.DF(
@@ -365,10 +367,17 @@ def get_bar(screen_idx):
 
     widgets.append(space())
 
+    battery = widget.UPowerWidget(**settings)
+    widgets.append(battery)
+    widgets.append(space())
+
     volume = widget.Volume(
         cardid=0,
         device=None,
-        theme_path="/usr/share/icons/HighContrast/256x256",
+        emoji=True,
+        fontsize=18,
+        font="Ubuntu",
+        # theme_path="/usr/share/icons/HighContrast/256x256",
         volume_app="pavucontrol",
         **settings,
     )

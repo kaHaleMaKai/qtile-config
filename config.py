@@ -12,7 +12,7 @@ from typing import List, Callable, cast  # noqa: F401
 from libqtile.log_utils import logger
 
 # custom imports – parts of config
-
+hook.subscribe.hooks.add("custom_reload")
 import procs
 from procs import Proc
 import color
@@ -94,7 +94,7 @@ treetab_settings = {
     "section_bottom": 0,
     "section_padding": 0,
     "section_left": 0,
-    "opacity": partial_opacities["class"]["xfce4-terminal"],
+    "opacity": partial_opacities["class"]["kitty"],
 }
 
 layouts = [
@@ -154,7 +154,7 @@ focus_on_window_activation = "smart"
 wmname = "LG3D"
 
 
-@hook.subscribe.startup_once
+@hook.subscribe.startup_complete
 async def autostart_once() -> None:
     logger.info("running startup_once")
     ps = [
@@ -182,7 +182,7 @@ async def autostart_once() -> None:
 @hook.subscribe.startup
 async def autostart() -> None:
     logger.info("running startup")
-    ps = [procs.setxkbmap, procs.resume_dunst]
+    ps = [procs.resume_dunst]
     if not util.in_debug_mode:
         ps.extend(
             [
@@ -232,6 +232,8 @@ def cycle_to_next_client_on_empty_group(window: Window) -> None:
     current_group = window.qtile.current_group
     if len(current_group.windows) > 1 or window not in current_group.windows:
         return
+    if len(current_group.windows) <= 1:
+        current_group.cmd_set_label(None)
 
     qtile = window.qtile
     g, s = util.get_group_and_screen_idx(qtile, -1, skip_invisible=True)
@@ -255,23 +257,19 @@ def move_sticky_windows():
         window.cmd_focus()
 
 
+@hook.subscribe.client_name_updated
 @hook.subscribe.client_focus
-@hook.subscribe.client_new
-def set_group_icon(window: Window) -> None:
+@hook.subscribe.client_managed
+def set_group_icon(window: Window | None) -> None:
     if not window:
         from libqtile import qtile
 
         qtile.current_group.cmd_set_label(None)
-        return
-
-    util.set_group_label_from_window_class(window)
-
-
-@hook.subscribe.client_killed
-def remove_group_icon(window: Window) -> None:
-    group = window.qtile.current_group
-    if group.windows <= 1:
-        group.cmd_set_label(None)
+    else:
+        util.set_group_label_from_window_class(window)
 
 
-setup_all_group_icons = hook.subscribe.restart(util.setup_all_group_icons)
+setup_all_group_icons = hook.subscribe._subscribe(
+    "custom_reload",
+    hook.subscribe.startup_complete(hook.subscribe.restart(util.setup_all_group_icons)),
+)

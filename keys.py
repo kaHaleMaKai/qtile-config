@@ -171,7 +171,7 @@ keys = KeyList(
         "M-<F12>": stop_distraction_free_mode,
         "M-p": history_back,
         "M-S-p": history_forward,
-        "M-<Return>": "xfce4-terminal -e zsh",
+        "M-<Return>": "kitty",
         "M-<minus>": "xdotool key Menu",
         "M-S-<Left>": "shiftred r-",
         "M-S-<Right>": "shiftred r+",

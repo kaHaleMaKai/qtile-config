@@ -2,7 +2,7 @@ import os
 import math
 import psutil
 import sqlite3
-from typing import Optional, Any, TYPE_CHECKING
+from typing import Optional, Any, TYPE_CHECKING, Callable
 from libqtile import bar
 
 if TYPE_CHECKING:
@@ -11,6 +11,7 @@ else:
     from qtile_extras import widget
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
+from libqtile.log_utils import logger
 from widgets.capslocker import CapsLockIndicator
 
 from widgets.checkclock_widget import CheckclockWidget
@@ -32,10 +33,12 @@ if util.is_light_theme:
     background = color.WHITE
     mid_color = color.BRIGHT_GRAY
     foreground = color.DARK_GRAY
+    bar_bg = background
 else:
     background = None
     mid_color = color.DARK_GRAY
     foreground = color.BRIGHT_GRAY
+    bar_bg = "#000000ff"
 
 
 settings = dict(
@@ -43,6 +46,35 @@ settings = dict(
     borderwidth=0,
     foreground=foreground,
 )
+
+
+def proc_fn(*args: str, shell: bool = False) -> Callable[[], None]:
+    from libqtile import qtile
+
+    cmd_args = (["xfce4-terminal", "-e"]) if shell else []
+    cmd_args += args
+
+    def run() -> None:
+        qtile.cmd_spawn(cmd_args)
+
+    return run
+
+
+class UPowerWidget(widget.UPowerWidget):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self._charging = False
+        super().__init__(*args, **kwargs)
+
+    @property
+    def charging(self) -> bool:
+        if not self._charging:
+            return False
+        fraction = max(b["fraction"] for b in self.batteries)
+        return fraction < 1
+
+    @charging.setter
+    def charging(self, charging: bool) -> None:
+        self._charging = charging
 
 
 class GroupBox(widget.GroupBox):
@@ -274,7 +306,8 @@ checkclock_args = dict(
     done_color=color.GREEN,
     almost_done_color=color.YELLOW,
     working_days="Mon-Sun",
-    avg_working_time=(7 * 3600 + 45 * 60),
+    # avg_working_time=(7 * 3600 + 45 * 60),
+    avg_working_time=6 * 3600,
     hooks={
         "on_rollover": lambda _: procs._dunstify(checkclock_id, "🔄 checkclock"),
     },
@@ -288,7 +321,7 @@ if db_key in os.environ:
 checkclock_widget = CheckclockWidget(**checkclock_args)
 
 
-def get_bar(screen_idx):
+def get_bar(screen_idx: int):
     is_primary = screen_idx == 0
     widgets = []
 
@@ -340,18 +373,18 @@ def get_bar(screen_idx):
         )
         widgets.append(current_screen)
 
-    prompt_args = settings.copy()
-    prompt_args.update(
-        name=f"prompt-{screen_idx}",
-        prompt="» ",
-        fontsize=12,
-        padding=10,
-        cursor_color=color.MID_ORANGE,
-        cursorblink=0.8,
-        foreground=color.MID_ORANGE,
-    )
-    prompt = widget.Prompt(**prompt_args)
-    widgets.append(prompt)
+    # prompt_args = settings.copy()
+    # prompt_args.update(
+    #     name=f"prompt-{screen_idx}",
+    #     prompt="» ",
+    #     fontsize=12,
+    #     padding=10,
+    #     cursor_color=color.MID_ORANGE,
+    #     cursorblink=0.8,
+    #     foreground=color.MID_ORANGE,
+    # )
+    # prompt = widget.Prompt(**prompt_args)
+    # widgets.append(prompt)
 
     task_args = settings.copy()
     task_args.update(
@@ -363,10 +396,20 @@ def get_bar(screen_idx):
     task_list = widget.TaskList(**task_args)
     widgets.append(task_list)
 
+    kdb_settings = settings | dict(
+        configured_keyboards=["de deadacute", "de"],
+        display_map={"de deadacute": "de", "de": "de (no coding)"},
+        foreground=color.MID_GRAY,
+    )
+    kbd = widget.KeyboardLayout(**kdb_settings)
+
     if is_primary:
         widgets.append(borg_widget)
         widgets.append(checkclock_widget)
-        # widgets.append(widget.StatusNotifier(icon_size=18, padding=8))
+        widgets.append(space())
+        widgets.append(kbd)
+
+        # widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
         for partition in PARTITIONS:
             df = widget.DF(
@@ -378,16 +421,20 @@ def get_bar(screen_idx):
 
     widgets.append(space())
 
-    battery = widget.UPowerWidget(
-        border_charge_colour=color.BRIGHT_GREEN,
+    battery = UPowerWidget(
+        border_charge_colour=color.DARK_GREEN,
+        fill_charge=color.BRIGHT_GREEN,
+        fill_critical=color.RED,
+        fill_normal=color.MID_BLUE_GRAY,
         border_colour=color.DARK_ORANGE,
         border_critical_colour=color.BRIGHT_RED,
+        mouse_callbacks={"Button3": proc_fn("xfce4-power-manager", "--customize")},
         **settings,
     )
     widgets.append(battery)
     widgets.append(space())
 
-    volume = widget.Volume(
+    volume_settings = settings | dict(
         cardid=0,
         device=None,
         emoji=True,
@@ -395,22 +442,19 @@ def get_bar(screen_idx):
         font="Ubuntu",
         # theme_path="/usr/share/icons/HighContrast/256x256",
         volume_app="pavucontrol",
-        **settings,
+        foreground=color.MID_GRAY,
     )
+    volume = widget.Volume(**volume_settings)
     widgets.append(volume)
+
     caps_lock = CapsLockIndicator(send_notifications=is_primary, **settings)
     widgets.append(caps_lock)
-
-    def run_htop():
-        from libqtile import qtile
-
-        qtile.cmd_spawn(["xfce4-terminal", "-e", "htop"])
 
     cpu_graph = DotGraph(
         func=psutil.cpu_percent,
         max=100,
         update_interval=1,
-        mouse_callbacks={"Button1": run_htop},
+        mouse_callbacks={"Button1": proc_fn("htop", shell=True)},
         **settings,
     )
     widgets.append(cpu_graph)
@@ -440,4 +484,4 @@ def get_bar(screen_idx):
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
     widgets.append(layout)
 
-    return bar.Bar(widgets=widgets, size=26, opacity=1 if util.is_light_theme else 0.9)
+    return bar.Bar(widgets=widgets, size=26, background=bar_bg)

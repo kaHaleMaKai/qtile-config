@@ -4,24 +4,26 @@ import pickle
 import functools
 
 
-BLACK            = "000000"
-WHITE            = "ffffff"
-RED              = "ff0000"
-GREEN            = "00ff00"
-BLUE             = "0000ff"
-ORANGE           = "ffff00"
-YELLOW           = "d8ff00"
-DARK_ORANGE      = "484800"
-MID_ORANGE       = "989800"
-BRIGHT_ORANGE    = "c0c000"
-DARK_BLUE_GRAY   = "102a3b"
-MID_BLUE_GRAY    = "215172"
+BLACK = "000000"
+WHITE = "ffffff"
+RED = "ff0000"
+GREEN = "00ff00"
+BLUE = "0000ff"
+ORANGE = "ffff00"
+YELLOW = "d8ff00"
+DARK_ORANGE = "484800"
+MID_ORANGE = "989800"
+BRIGHT_ORANGE = "c0c000"
+DARK_BLUE_GRAY = "102a3b"
+MID_BLUE_GRAY = "215172"
 BRIGHT_BLUE_GRAY = "42a2e4"
-BRIGHT_GRAY      = "d0d0d0"
-BRIGHT_RED       = "b00000"
-DARK_GRAY        = "383838"
-DARK_RED         = "800000"
-BRIGHT_GREEN     = "00b800"
+BRIGHT_GRAY = "d0d0d0"
+BRIGHT_RED = "b00000"
+DARK_GRAY = "383838"
+DARK_RED = "800000"
+BRIGHT_GREEN = "00b800"
+DARK_GREEN = "085008"
+MID_GRAY = "a0a0a0"
 
 
 def normalize_hex_color(color):
@@ -38,7 +40,7 @@ def add_hashtag(color):
 
 def hex_to_dec(color):
     c = normalize_hex_color(color)
-    return tuple(int(c[i:i+2], 16) for i in range(0, 6, 2))
+    return tuple(int(c[i : i + 2], 16) for i in range(0, 6, 2))
 
 
 def dec_to_hex(triplet):
@@ -46,7 +48,6 @@ def dec_to_hex(triplet):
 
 
 def to_hex(fn):
-
     @functools.wraps(fn)
     def inner(*args, **kwargs):
         return dec_to_hex(fn(*args, **kwargs))
@@ -57,11 +58,11 @@ def to_hex(fn):
 @to_hex
 def complement(color, scale=1):
     triplet = hex_to_dec(color)
-    return tuple(int((1-scale)*c + scale * (255 - c)) for c in triplet)
+    return tuple(int((1 - scale) * c + scale * (255 - c)) for c in triplet)
 
 
 def lin(start, stop, scaling):
-    return start + round((stop - start)*scaling)
+    return start + round((stop - start) * scaling)
 
 
 @to_hex
@@ -73,7 +74,7 @@ def gradient(value, max_value, colors, scaling=None):
     num_intervals = len(colors) - 1
     scaled_value = value * num_intervals / max_value
     idx = math.floor(scaled_value)
-    start, stop = colors[idx], colors[idx+1]
+    start, stop = colors[idx], colors[idx + 1]
     scaling_factor = scaled_value - idx
     if scaling:
         scaling_factor = min(1, scaling_factor * scaling)
@@ -88,7 +89,7 @@ def get_ascii_colors():
 
 
 def distance(color, other):
-    return sum((color[i] - other[i])**2 for i in range(len(color))) ** 0.5
+    return sum((color[i] - other[i]) ** 2 for i in range(len(color))) ** 0.5
 
 
 def to_ascii_color(color):

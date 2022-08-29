@@ -29,7 +29,9 @@ rules = {
         "xtightvncviewer",
         "kazam",
         "Msgcompose",
+        "Xfce4-power-manager-settings",
         re.compile("^Polkit-gnome-authentication-agent.*"),
+        "fontforge",
     ],
     "wm_name": [
         "pinentry",

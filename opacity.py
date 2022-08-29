@@ -48,6 +48,7 @@ full_opacities = {
 partial_opacities = {
     "class": {
         "xfce4-terminal": 0.92,
+        "kitty": 0.92,
         "neovide": 0.92,
         "thunderbird": 0.97,
         "gajim": 0.97,

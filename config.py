@@ -52,6 +52,7 @@ matcher = {
         Match(wm_class="Evolution"),
         Match(wm_class="Thunderbird"),
         Match(wm_class="thunderbird"),
+        Match(wm_class="thunderbird-default"),
     ],
     "f": [
         Match(wm_class=re.compile(r".*Firefox.*")),
@@ -238,8 +239,7 @@ def cycle_to_next_client_on_empty_group(window: Window) -> None:
     qtile = window.qtile
     g, s = util.get_group_and_screen_idx(qtile, -1, skip_invisible=True)
     if g.name > current_group.name:
-        g = qtile.groups_map["1"]
-        s = 0
+        g, s = qtile.groups_map["1"], 0
     util.group_history.backward()
     util.group_history.add(g)
     qtile.cmd_to_screen(s)

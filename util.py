@@ -6,6 +6,7 @@ import pywal
 import procs
 import asyncio
 import subprocess
+import psutil
 from itertools import chain
 from pathlib import Path
 from typing import Iterable, TypedDict, Any, cast
@@ -488,6 +489,7 @@ def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
     qtile.cmd_reload_config()
     hook.fire("custom_reload")
     logger.info("finished reloading config (sync)")
+    reload_kitty_config()
 
 
 def sync_reload_qtile(qtile: Qtile) -> None:
@@ -501,6 +503,12 @@ def sync_reload_qtile_light_theme(qtile: Qtile) -> None:
 @lazy.function
 def lock_screen(qtile: Qtile) -> None:
     procs.screensaver_cmd.sync().run()
+
+
+def reload_kitty_config() -> None:
+    for p in psutil.process_iter():
+        if p.name() == "kitty":
+            p.send_signal(psutil.signal.SIGUSR1)
 
 
 sticky_windows: list[tuple[Window, _Group, bool]] = []
@@ -549,6 +557,8 @@ def set_group_label_from_window_class(window: Window) -> None:
         ch = group_labels["name"].get(name)
 
     group = window.group
+    if not group:
+        return
     if isinstance(group, ScratchPad):
         group.cmd_set_label(None)
         return
@@ -573,14 +583,13 @@ def set_group_label_from_window_class(window: Window) -> None:
         if role:
             ch = group_labels["role"].get(role.lower())
 
-    ch: str | None
+    label: str | None
     if ch:
         label = chr(ch)
-    # scratchpads
-    elif len(group.name) > 1:
-        label = ""
     else:
         label = None
+        msg = f"missing label for window name={window.name!r}, role={window.get_wm_role()!r}, class={window.get_wm_class()!r}"
+        logger.warn()
     label = chr(ch) if ch else None
     group.cmd_set_label(label)
 

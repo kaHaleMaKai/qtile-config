@@ -11,6 +11,7 @@ else:
     from qtile_extras import widget
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
+from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
 from widgets.capslocker import CapsLockIndicator
 
@@ -84,7 +85,8 @@ class GroupBox(widget.GroupBox):
             "always_visible_groups",
             (),
             "groups that are visible even when hide_unused is set, and group is empty",
-        )
+        ),
+        ("hide_scratchpads", True, "whether to always hide scratchpads"),
     ]
 
     def __init__(self, **config: Any) -> None:
@@ -93,11 +95,12 @@ class GroupBox(widget.GroupBox):
 
     @property
     def groups(self) -> list[str]:
+        groups = (g for g in self.qtile.groups if not self.hide_scratchpads or not isinstance(g, ScratchPad))
         if self.hide_unused:
             if self.visible_groups:
                 return [
                     g
-                    for g in self.qtile.groups
+                    for g in groups
                     if g.label
                     and (
                         ((g.windows or g.screen) and g.name in self.visible_groups)
@@ -107,7 +110,7 @@ class GroupBox(widget.GroupBox):
             else:
                 return [
                     g
-                    for g in self.qtile.groups
+                    for g in groups
                     if g.label
                     and ((g.windows or g.screen) or g.name in self.always_visible_groups)
                 ]
@@ -115,7 +118,7 @@ class GroupBox(widget.GroupBox):
             if self.visible_groups:
                 return [
                     g
-                    for g in self.qtile.groups
+                    for g in groups
                     if g.label
                     and (g.name in self.visible_groups or g.name in self.always_visible_groups)
                 ]
@@ -307,7 +310,7 @@ checkclock_args = dict(
     almost_done_color=color.YELLOW,
     working_days="Mon-Sun",
     # avg_working_time=(7 * 3600 + 45 * 60),
-    avg_working_time=6 * 3600,
+    avg_working_time=4 * 3600,
     hooks={
         "on_rollover": lambda _: procs._dunstify(checkclock_id, "🔄 checkclock"),
     },

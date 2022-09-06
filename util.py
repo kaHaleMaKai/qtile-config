@@ -330,6 +330,7 @@ def move_to_screen(dest_screen):
         other_screen = qtile.screens[dest_screen]
         g = other_screen.group.name
         qtile.current_window.togroup(g)
+        qtile.cmd_to_screen(dest_screen)
 
     return f
 

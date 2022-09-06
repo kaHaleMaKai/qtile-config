@@ -125,6 +125,10 @@ keys = KeyList(
         "M-<Right>": next_group,
         "M-y": move_window_to_offset_group(-1),
         "M-x": move_window_to_offset_group(+1),
+        "M-C-<Left>": go_to_screen(0),
+        "M-C-<Right>": go_to_screen(1),
+        "M-S-y": move_to_screen(0),
+        "M-S-x": move_to_screen(1),
         "M-h": lazy.layout.left,
         "M-l": lazy.layout.right,
         "M-j": lazy.layout.down,
@@ -216,15 +220,3 @@ keys = KeyList(
         "M-S-g": "xdotool key Return",
     }
 )
-
-if is_laptop_connected():
-    first_key = "Up"
-    second_key = "Down"
-else:
-    first_key = "Left"
-    second_key = "Right"
-
-keys[f"M-C-<{first_key}>"] = go_to_screen(0)
-keys[f"M-C-<{second_key}>"] = go_to_screen(1)
-keys[f"M-A-<{first_key}>"] = move_to_screen(0)
-keys[f"M-A-<{second_key}>"] = move_to_screen(1)

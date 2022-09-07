@@ -235,7 +235,8 @@ def cycle_to_next_client_on_empty_group(window: Window) -> None:
         return
     if len(current_group.windows) <= 1:
         current_group.cmd_set_label(None)
-
+    if current_group.name in ("1", "f"):
+        return
     qtile = window.qtile
     g, s = util.get_group_and_screen_idx(qtile, -1, skip_invisible=True)
     if g.name > current_group.name:

@@ -31,37 +31,37 @@ class ScreenDict(TypedDict):
     screens: dict[str, dict[str, int]]
 
 
-# vim: 0xE7C5 or 0xe62b
-# postgres: 0xF703,
+# vim: 0xe7c5 or 0xe62b
+# postgres: 0xf703,
 # python: 0xe73cf
 # java: 0xe738
 group_labels: dict[str, dict[str, int]] = {
     "role": {},
     "class": {
-        "firefox": 0xE745,  # 0xf269,
-        "firefox-aurora": 0xE745,  # 0xf269,
-        "xfce4-terminal": 0xE795,
-        "kitty": 0xF120,
+        "firefox": 0xe745,  # 0xf269,
+        "firefox-aurora": 0xe745,  # 0xf269,
+        "xfce4-terminal": 0xe795,
+        "kitty": 0xf120,
         "vivaldi-stable": {
             "regexes": {
-                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xF447,
+                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xf447,
             },
-            "default": 0xF7C8,  # 0xE744,  # 0xF57D,
+            "default": 0xf7c8,  # 0xe744,  # 0xf57d,
         },
-        "thunderbird": 0xF6ED,
-        "thunderbird-default": 0xF6ED,
-        "dbeaver": 0xF472,
-        "org.remmina.remmina": 0xE62A,  # 0xF17A,
-        "pavucontrol": 0xF028,
-        "nextcloud": 0xF0C2,
-        "wpsoffice": 0xF00B,
-        "signal": 0xE712,
+        "thunderbird": 0xf6ed,
+        "thunderbird-default": 0xf6ed,
+        "dbeaver": 0xf472,
+        "org.remmina.remmina": 0xe62a,  # 0xf17a,
+        "pavucontrol": 0xf028,
+        "nextcloud": 0xf0c2,
+        "wpsoffice": 0XF9EA, # 0xf00b,
+        "signal": 0xe712,
     },
     "name": {
-        "vim": 0xE7C5,
-        "ʻāwīwī": 0xE2A2,
-        "psql": 0xF703,
-        "ipython": 0xE235,  # 0xE73C,
+        "vim": 0xe7c5,
+        "ʻāwīwī": 0xe2a2,
+        "psql": 0xf703,
+        "ipython": 0xe235,  # 0xe73c,
     },
 }
 

@@ -3,11 +3,11 @@ import shutil
 import random
 import datetime
 from typing import Generator, List, Any, Union
-from procs import _dunstify
+from qutely.procs import _dunstify
 from pathlib import Path
 from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL
 from libqtile.widget.textbox import TextBox
-from .checkclock import (
+from qutely.widgets.checkclock import (
     Checkclock,
     normalize_color,
     as_time,

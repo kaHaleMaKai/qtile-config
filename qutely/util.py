@@ -3,7 +3,7 @@ import sys
 import re
 import yaml
 import pywal
-import procs
+from qutely import procs, templates
 import asyncio
 import subprocess
 import psutil
@@ -20,10 +20,9 @@ from libqtile.layout.base import Layout
 from libqtile.layout.tree import TreeTab
 from libqtile.config import Group
 from libqtile.scratchpad import ScratchPad
-import templates
-from color import complement, add_hashtag
-
 from libqtile.log_utils import logger
+from qutely.color import complement, add_hashtag
+
 
 
 class ScreenDict(TypedDict):

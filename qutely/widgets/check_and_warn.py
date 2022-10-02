@@ -6,7 +6,7 @@ from typing import Any, Callable, Optional, Union, cast
 
 from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL  # type: ignore[import]
 
-from .lib.notifier import Notifier
+from qutely.widgets.lib.notifier import Notifier
 
 
 class CheckState(IntEnum):

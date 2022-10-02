@@ -23,7 +23,7 @@ from libqtile.widget import base
 
 import re
 import subprocess
-from procs import _dunstify
+from qutely.procs import _dunstify
 
 
 ID = 1928398723

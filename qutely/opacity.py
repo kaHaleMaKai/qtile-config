@@ -1,7 +1,7 @@
 from libqtile import hook
 from libqtile.backend.x11.window import Window
 from libqtile.log_utils import logger
-from util import is_light_theme
+from qutely.util import is_light_theme
 
 full_opacities = {
     "class": {

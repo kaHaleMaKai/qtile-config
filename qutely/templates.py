@@ -2,23 +2,24 @@ import os
 import re
 import yaml
 import hashlib
+from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from libqtile.log_utils import logger
 
-cur_dir = os.path.abspath(os.path.dirname(__file__))
+cur_dir = Path(__file__).absolute().parent
 
 
 def get_template(file):
-    path = os.path.join(cur_dir, "templates")
-    loader = FileSystemLoader(path)
+    templates_dir = cur_dir / "templates"
+    loader = FileSystemLoader(templates_dir)
     return Environment(loader=loader, line_comment_prefix="#j2:", enable_async=True).get_template(
         file
     )
 
 
 def get_vars(src, overrides):
-    with open(os.path.join(cur_dir, "vars.yml"), "r") as f:
+    with (cur_dir / "vars.yml").open("r") as f:
         vars = yaml.load(f, Loader=yaml.BaseLoader)
     src_vars = vars[src.replace(".j2", "")]
     if overrides:

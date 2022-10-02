@@ -1,4 +1,5 @@
 import os
+import re
 import math
 import psutil
 import sqlite3
@@ -13,17 +14,14 @@ from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
-from widgets.capslocker import CapsLockIndicator
+from qutely.widgets.capslocker import CapsLockIndicator
 
-from widgets.checkclock_widget import CheckclockWidget
-from widgets.check_and_warn import CheckAndWarnWidget, CheckState
+from qutely.widgets.checkclock_widget import CheckclockWidget
+from qutely.widgets.check_and_warn import CheckAndWarnWidget, CheckState
 
 # from widgets.contextmenu import ContextMenu, SpawnedMenu
 import datetime
-import util
-import color
-import procs
-import re
+from qutely import util, color, procs
 from pathlib import Path
 
 PARTITIONS = ["/", "/home", "/tmp", "/var", "/boot", "/boot/efi", "/var/lib/docker"]

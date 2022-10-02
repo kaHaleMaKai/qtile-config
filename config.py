@@ -13,17 +13,15 @@ from libqtile.log_utils import logger
 
 # custom imports – parts of config
 hook.subscribe.hooks.add("custom_reload")
-import procs
-from procs import Proc
-import color
-from floating_rules import get_floating_rules
-from keys import keys, mod_key
-import util
-from opacity import partial_opacities  # NOQA
+from qutely import procs, color, util
+from qutely.procs import Proc
+from qutely.floating_rules import get_floating_rules
+from qutely.keys import keys, mod_key
+from qutely.opacity import partial_opacities  # NOQA
 
 if not util.is_light_theme:
-    from opacity import add_opacity
-from bar import get_bar
+    from qutely.opacity import add_opacity
+from qutely.bar import get_bar
 
 
 scratchpad = ScratchPad(

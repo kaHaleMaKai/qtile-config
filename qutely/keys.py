@@ -1,12 +1,12 @@
 import asyncio
 import shlex
 from typing import Awaitable, Any
-from procs import Proc
+from qutely.procs import Proc
 from libqtile.config import EzKey
 from libqtile.command import lazy, _LazyTree
 from libqtile.lazy import LazyCall
 from libqtile.utils import logger
-from util import (
+from qutely.util import (
     prev_group,
     next_group,
     spawncmd,

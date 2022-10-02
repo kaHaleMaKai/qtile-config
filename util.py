@@ -38,30 +38,32 @@ class ScreenDict(TypedDict):
 group_labels: dict[str, dict[str, int]] = {
     "role": {},
     "class": {
-        "firefox": 0xe745,  # 0xf269,
-        "firefox-aurora": 0xe745,  # 0xf269,
-        "xfce4-terminal": 0xe795,
-        "kitty": 0xf120,
+        "firefox": 0xE745,  # 0xf269,
+        "firefox-aurora": 0xE745,  # 0xf269,
+        "xfce4-terminal": 0xE795,
+        "kitty": 0xF120,
         "vivaldi-stable": {
             "regexes": {
-                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xf447,
+                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xF447,
             },
-            "default": 0xf7c8,  # 0xe744,  # 0xf57d,
+            "default": 0xF7C8,  # 0xe744,  # 0xf57d,
         },
-        "thunderbird": 0xf6ed,
-        "thunderbird-default": 0xf6ed,
-        "dbeaver": 0xf472,
-        "org.remmina.remmina": 0xe62a,  # 0xf17a,
-        "pavucontrol": 0xf028,
-        "nextcloud": 0xf0c2,
-        "wpsoffice": 0XF9EA, # 0xf00b,
-        "signal": 0xe712,
+        "thunderbird": 0xF6ED,
+        "thunderbird-default": 0xF6ED,
+        "dbeaver": 0xF472,
+        "org.remmina.remmina": 0xE62A,  # 0xf17a,
+        "pavucontrol": 0xF028,
+        "nextcloud": 0xF0C2,
+        "wpsoffice": 0xF9EA,  # 0xf00b,
+        "signal": 0xE712,
+        "gimp": 0xf48f,
+        "scribus": 0xfad9,
     },
     "name": {
-        "vim": 0xe7c5,
-        "ʻāwīwī": 0xe2a2,
-        "psql": 0xf703,
-        "ipython": 0xe235,  # 0xe73c,
+        "vim": 0xE7C5,
+        "ʻāwīwī": 0xE2A2,
+        "psql": 0xF703,
+        "ipython": 0xE235,  # 0xe73c,
     },
 }
 
@@ -456,7 +458,7 @@ def stop_distraction_free_mode(qtile: Qtile) -> None:
     procs._dunstify("including distractions again")
 
 
-async def reload_qtile(qtile: Qtile) -> None:
+async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
     logger.info("reloading config (async)")
     path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
@@ -467,9 +469,12 @@ async def reload_qtile(qtile: Qtile) -> None:
         path_env = f.read()
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
+    os.environ[THEME_BG_KEY] = "1" if light_theme else ""
     qtile.cmd_reload_config()
-    setup_all_group_icons()
+    hook.fire("custom_reload")
+    qtile.call_soon(setup_all_group_icons)
     logger.info("finished reloading config (async)")
+    qtile.call_soon(reload_kitty_config)
 
 
 def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
@@ -490,7 +495,7 @@ def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
     qtile.cmd_reload_config()
     hook.fire("custom_reload")
     logger.info("finished reloading config (sync)")
-    reload_kitty_config()
+    qtile.call_soon(reload_kitty_config)
 
 
 def sync_reload_qtile(qtile: Qtile) -> None:
@@ -501,9 +506,8 @@ def sync_reload_qtile_light_theme(qtile: Qtile) -> None:
     sync_reload_qtile_helper(qtile, light_theme=True)
 
 
-@lazy.function
-def lock_screen(qtile: Qtile) -> None:
-    procs.screensaver_cmd.sync().run()
+async def lock_screen(qtile: Qtile) -> None:
+    await procs.screensaver_cmd.run()
 
 
 def reload_kitty_config() -> None:

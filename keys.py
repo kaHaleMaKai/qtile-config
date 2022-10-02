@@ -1,6 +1,11 @@
+import asyncio
+import shlex
+from typing import Awaitable, Any
+from procs import Proc
 from libqtile.config import EzKey
-from libqtile.command import lazy
+from libqtile.command import lazy, _LazyTree
 from libqtile.lazy import LazyCall
+from libqtile.utils import logger
 from util import (
     prev_group,
     next_group,
@@ -9,8 +14,7 @@ from util import (
     move_to_screen,
     in_debug_mode,
     restart_qtile,
-    sync_reload_qtile,
-    sync_reload_qtile_light_theme,
+    reload_qtile,
     move_window_to_offset_group,
     start_distraction_free_mode,
     stop_distraction_free_mode,
@@ -48,6 +52,12 @@ if in_debug_mode:
 else:
     mod_abbrev = default_mod_key
 mod_key = inverse_modifier_keys[mod_abbrev]
+
+
+def lazy_coro(f: Awaitable[Any], *args: Any, **kwargs: Any) -> LazyCall:
+    return lazy.function(
+        lambda qtile: qtile.call_soon(asyncio.create_task, f(qtile, *args, **kwargs))
+    )
 
 
 class KeyList(list):
@@ -100,12 +110,17 @@ class KeyList(list):
 
         li = []
         for cmd in cmds:
+            logger.debug(cmd)
             if isinstance(cmd, str):
                 action = lazy.spawn(cmd)
-            elif not isinstance(cmd, LazyCall):
-                action = cmd()
-            else:
+            elif isinstance(cmd, LazyCall):
                 action = cmd
+            elif isinstance(cmd, _LazyTree):
+                action = cmd()
+            elif asyncio.iscoroutinefunction(cmd):
+                action = lazy_coro(cmd)
+            else:
+                action = cmd()
             li.append(action)
         return li
 
@@ -168,8 +183,8 @@ keys = KeyList(
         "M-S-q": "fakecam choose-background",
         "M-C-q": lazy.shutdown,
         "M-r": "rofi -i -show run",
-        "M-S-r": lazy.function(sync_reload_qtile),
-        "M-<Escape>": lazy.function(sync_reload_qtile_light_theme),
+        "M-S-r": reload_qtile,
+        "M-<Escape>": lazy_coro(reload_qtile, light_theme=True),
         "M-C-r": lazy.function(restart_qtile),
         "M-S-<F12>": start_distraction_free_mode,
         "M-<F12>": stop_distraction_free_mode,

@@ -162,6 +162,7 @@ async def autostart_once() -> None:
         procs.unclutter,
         procs.network_manager,
         procs.xfce4_power_manager,
+        procs.activate_touchpad,
     ]
     if not util.in_debug_mode:
         ps.extend(

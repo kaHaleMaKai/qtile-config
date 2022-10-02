@@ -667,3 +667,10 @@ nextcloud_sync = Proc("nextcloud", bg=True)
 kde_connect = Proc("kdeconnect-indicator", bg=True)
 setxkbmap = Proc("setxkbmap", "de", "deadacute", shell=True)
 fakecam = Proc("fakecam", "start")
+activate_touchpad = Proc(
+    "xinput",
+    "set-prop",
+    "SynPS/2 Synaptics TouchPad",
+    "libinput Tapping Enabled",
+    "1",
+)

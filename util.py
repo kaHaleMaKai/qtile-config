@@ -58,6 +58,7 @@ group_labels: dict[str, dict[str, int]] = {
         "signal": 0xE712,
         "gimp": 0xf48f,
         "scribus": 0xfad9,
+        "qbittorent": 0xeac2,
     },
     "name": {
         "vim": 0xE7C5,

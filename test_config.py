@@ -7,3 +7,9 @@ config_file = cur_dir / "config.py"
 c = confreader.Config(str(config_file))
 
 c.load()
+c.validate()
+
+
+c = confreader.Config(str(config_file))
+c.load()
+c.validate()

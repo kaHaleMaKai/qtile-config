@@ -77,8 +77,6 @@ class UPowerWidget(widget.UPowerWidget):
         if not self._charging:
             return False
         fraction = max(b.get("fraction", 0) for b in self.batteries)
-        for b in self.batteries:
-            logger.error(f"battery: {b}")
         return fraction < 1
 
     @charging.setter

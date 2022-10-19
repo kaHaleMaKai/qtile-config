@@ -24,7 +24,15 @@ import datetime
 from qutely import util, color, procs
 from pathlib import Path
 
-PARTITIONS = ["/", "/home", "/tmp", "/var", "/boot", "/boot/efi", "/var/lib/docker"]
+PARTITIONS = {
+    "/": "G",
+    "/home": "G",
+    "/tmp": "G",
+    "/var": "G",
+    "/boot": "M",
+    "/boot/efi": "M",
+    "/var/lib/docker": "G",
+}
 
 # import dbus_next
 
@@ -68,7 +76,9 @@ class UPowerWidget(widget.UPowerWidget):
     def charging(self) -> bool:
         if not self._charging:
             return False
-        fraction = max(b["fraction"] for b in self.batteries)
+        fraction = max(b.get("fraction", 0) for b in self.batteries)
+        for b in self.batteries:
+            logger.error(f"battery: {b}")
         return fraction < 1
 
     @charging.setter
@@ -93,7 +103,11 @@ class GroupBox(widget.GroupBox):
 
     @property
     def groups(self) -> list[str]:
-        groups = (g for g in self.qtile.groups if not self.hide_scratchpads or not isinstance(g, ScratchPad))
+        groups = (
+            g
+            for g in self.qtile.groups
+            if not self.hide_scratchpads or not isinstance(g, ScratchPad)
+        )
         if self.hide_unused:
             if self.visible_groups:
                 return [
@@ -412,9 +426,12 @@ def get_bar(screen_idx: int):
 
         # widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
         widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
-        for partition in PARTITIONS:
+        for partition, unit in PARTITIONS.items():
             df = widget.DF(
-                visible_on_warn=True, partition=partition, warn_color=color.BRIGHT_ORANGE
+                visible_on_warn=True,
+                partition=partition,
+                warn_color=color.BRIGHT_ORANGE,
+                measure=unit,
             )
             widgets.append(df)
     else:
@@ -423,6 +440,7 @@ def get_bar(screen_idx: int):
     widgets.append(space())
 
     battery = UPowerWidget(
+        battery_name="hidpp_battery_0",
         border_charge_colour=color.DARK_GREEN,
         fill_charge=color.BRIGHT_GREEN,
         fill_critical=color.RED,

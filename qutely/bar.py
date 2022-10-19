@@ -438,7 +438,7 @@ def get_bar(screen_idx: int):
     widgets.append(space())
 
     battery = UPowerWidget(
-        battery_name="hidpp_battery_0",
+        # battery_name="hidpp_battery_0",
         border_charge_colour=color.DARK_GREEN,
         fill_charge=color.BRIGHT_GREEN,
         fill_critical=color.RED,

@@ -12,12 +12,11 @@ set -xv
 # export QTILE_DEBUG_MODE=on
 export QTILE_CHECKCLOCK_DB=/tmp/checkclock.sqlite
 config_dir="${HOME}/.config/qtile-test"
-app_dir="${HOME}/local/qtile-test"
+bin_dir="${HOME}/venvs/qtile-test/bin"
 export LOG_LEVEL=DEBUG
 # export QTILE_MOD_KEY=mod1
 export PYTHONASYNCIODEBUG=1
 
-source "${app_dir}/.venv/bin/activate"
-exec "${app_dir}/bin/qtile" start --config "${config_dir}/config.py"
+"${bin_dir}/python" "${bin_dir}/qtile" start --config "${config_dir}/config.py"
 
 # vim: ft=sh

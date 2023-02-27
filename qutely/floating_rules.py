@@ -41,6 +41,7 @@ rules = {
     "role": [
         "AlarmWindow",
         "pop-up",
+        "filterlist",
     ],
 }
 

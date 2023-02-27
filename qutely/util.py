@@ -24,7 +24,6 @@ from libqtile.log_utils import logger
 from qutely.color import complement, add_hashtag
 
 
-
 class ScreenDict(TypedDict):
     _primary: str
     screens: dict[str, dict[str, int]]
@@ -34,13 +33,18 @@ class ScreenDict(TypedDict):
 # postgres: 0xf703,
 # python: 0xe73cf
 # java: 0xe738
-group_labels: dict[str, dict[str, int]] = {
+group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], int]]]] = {
     "role": {},
     "class": {
         "firefox": 0xE745,  # 0xf269,
         "firefox-aurora": 0xE745,  # 0xf269,
         "xfce4-terminal": 0xE795,
-        "kitty": 0xF120,
+        "kitty": {
+            "default": 0xF120,
+            "regexes": {
+                re.compile("^[^@]+@.*:"): 0xF1E6,
+            },
+        },
         "vivaldi-stable": {
             "regexes": {
                 re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xF447,
@@ -55,13 +59,18 @@ group_labels: dict[str, dict[str, int]] = {
         "nextcloud": 0xF0C2,
         "wpsoffice": 0xF9EA,  # 0xf00b,
         "signal": 0xE712,
-        "gimp": 0xf48f,
-        "scribus": 0xfad9,
-        "qbittorent": 0xeac2,
+        "gimp": 0xF48F,
+        "scribus": 0xF040,
+        "qbittorent": 0xEAC2,
+        "keepassxc": 0xF21B,
+        "draw.io": 0xF03E,
+        "jetbrains-idea-ce": 0xE7B5,
+        "virtualbox manager": 0xE707,
+        "evince": 0xF411,
     },
     "name": {
         "vim": 0xE7C5,
-        "ʻāwīwī": 0xE2A2,
+        "ʻāwīwī": 0xE006,  # 0xF02D,  # 0xE2A2,
         "psql": 0xF703,
         "ipython": 0xE235,  # 0xe73c,
     },

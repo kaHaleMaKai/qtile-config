@@ -331,7 +331,7 @@ db_key = "QTILE_CHECKCLOCK_DB"
 if db_key in os.environ:
     checkclock_args["db_path"] = os.environ[db_key]
 
-checkclock_widget = CheckclockWidget(**checkclock_args)
+# checkclock_widget = CheckclockWidget(**checkclock_args)
 
 
 def get_bar(screen_idx: int):
@@ -418,7 +418,7 @@ def get_bar(screen_idx: int):
 
     if is_primary:
         widgets.append(borg_widget)
-        widgets.append(checkclock_widget)
+        # widgets.append(checkclock_widget)
         widgets.append(space())
         widgets.append(kbd)
 
@@ -433,7 +433,8 @@ def get_bar(screen_idx: int):
             )
             widgets.append(df)
     else:
-        widgets.append(checkclock_widget.new_companion())
+        # widgets.append(checkclock_widget.new_companion())
+        pass
 
     widgets.append(space())
 

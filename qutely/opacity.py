@@ -30,6 +30,7 @@ full_opacities = {
         "xtightvncviewer",
         "kazam",
         "vivaldi-stable",
+        "scribus",
     },
     "role": {
         "gtkfilechooserdialog",
@@ -64,6 +65,7 @@ partial_opacities = {
     "type": {},
 }
 
+
 def set_opacities(window: Window, dim: bool = True, overwrite: bool = False) -> None:
     if hasattr(window, "_full_opacity") and not overwrite:
         return
@@ -89,22 +91,22 @@ def get_specs(window: Window):
     role = None if role is None else role.lower()
     type = None if type is None else type.lower()
 
-    return classes, name, role, type
+    return *classes, name, role, type
 
 
 def get_opacity_spec(window: Window, cls=None, name=None, role=None, type=None):
     if cls or name or role or type:
-        classes = ("", cls) if cls else (None, None)
+        cls0, cls1 = ("", cls) if cls else (None, None)
     else:
-        classes, name, role, type = get_specs(window)
+        cls0, cls1, name, role, type = get_specs(window)
 
     try:
         has_full_opacity = (
             name in full_opacities["name"]
             or role in full_opacities["role"]
             or type in full_opacities["type"]
-            or classes[0] in full_opacities["class"]
-            or classes[1] in full_opacities["class"]
+            or cls0 in full_opacities["class"]
+            or cls1 in full_opacities["class"]
         )
         if has_full_opacity:
             return {"full": True, "value": 1.0}
@@ -115,7 +117,7 @@ def get_opacity_spec(window: Window, cls=None, name=None, role=None, type=None):
     opacity = partial_opacities["name"].get(name)
     if opacity is None:
         c = partial_opacities["class"]
-        opacity = c.get(classes[0], c.get(classes[1]))
+        opacity = c.get(cls0, c.get(cls1))
         if opacity is None:
             opacity = partial_opacities["role"].get(role)
             if opacity is None:

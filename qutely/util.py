@@ -67,6 +67,7 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
         "jetbrains-idea-ce": 0xE7B5,
         "virtualbox manager": 0xE707,
         "evince": 0xF411,
+        "bitwarden": 0xF21B,
     },
     "name": {
         "vim": 0xE7C5,

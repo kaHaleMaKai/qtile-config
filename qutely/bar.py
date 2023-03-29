@@ -234,10 +234,9 @@ def get_num_procs():
 
 def get_net_throughput():
     net = psutil.net_io_counters(pernic=True)
-    ethernet_name = "enp0s31f6"
-    wifi_name = "wlp4s0"
-    up = net[ethernet_name].bytes_sent + net[wifi_name].bytes_sent
-    down = net[ethernet_name].bytes_recv + net[wifi_name].bytes_recv
+    devs = ["something"]
+    up = sum(net[dev].bytes_sent for dev in devs)
+    down = sum(net[dev].bytes_recv for dev in devs)
     return up, down
 
 
@@ -430,6 +429,7 @@ def get_bar(screen_idx: int):
                 partition=partition,
                 warn_color=color.BRIGHT_ORANGE,
                 measure=unit,
+                update_interval=5,
             )
             widgets.append(df)
     else:
@@ -438,19 +438,19 @@ def get_bar(screen_idx: int):
 
     widgets.append(space())
 
-    battery = UPowerWidget(
-        # battery_name="hidpp_battery_0",
-        border_charge_colour=color.DARK_GREEN,
-        fill_charge=color.BRIGHT_GREEN,
-        fill_critical=color.RED,
-        fill_normal=color.MID_BLUE_GRAY,
-        border_colour=color.DARK_ORANGE,
-        border_critical_colour=color.BRIGHT_RED,
-        mouse_callbacks={"Button3": proc_fn("xfce4-power-manager", "--customize")},
-        **settings,
-    )
-    widgets.append(battery)
-    widgets.append(space())
+#    battery = UPowerWidget(
+#        # battery_name="hidpp_battery_0",
+#        border_charge_colour=color.DARK_GREEN,
+#        fill_charge=color.BRIGHT_GREEN,
+#        fill_critical=color.RED,
+#        fill_normal=color.MID_BLUE_GRAY,
+#        border_colour=color.DARK_ORANGE,
+#        border_critical_colour=color.BRIGHT_RED,
+#        mouse_callbacks={"Button3": proc_fn("xfce4-power-manager", "--customize")},
+#        **settings,
+#    )
+#    widgets.append(battery)
+#    widgets.append(space())
 
     volume_settings = settings | dict(
         cardid=0,
@@ -477,16 +477,16 @@ def get_bar(screen_idx: int):
     )
     widgets.append(cpu_graph)
 
-    net_graph = ArrowGraph(
-        func=get_net_throughput,
-        max=(1 << 20),
-        update_interval=1,
-        use_diff=True,
-        up_first=False,
-        **settings,
-    )
-    widgets.append(net_graph)
-
+#    net_graph = ArrowGraph(
+#        func=get_net_throughput,
+#        max=(1 << 20),
+#        update_interval=1,
+#        use_diff=True,
+#        up_first=False,
+#        **settings,
+#    )
+#    widgets.append(net_graph)
+#
     # menu = SpawnedMenu("num_procs", {"a": lambda qtile: print("hello")}, min_width=10)
 
     num_procs = widget.GenPollText(

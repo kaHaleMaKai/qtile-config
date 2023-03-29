@@ -211,12 +211,17 @@ def handle_floating_windows(window: Window) -> None:
 
     role = window.window.get_wm_window_role()
     name = window.name
+    class_ = window.get_wm_class()[1].lower()
     if name.startswith("chrome-extension://") and name.endswith(
         " is sharing a window."
     ):
         window.cmd_enable_floating()
     elif role == "InvitationsDialog":
         window.floating = False
+
+    if class_ == "nm-openconnect-auth-dialog":
+        window.width, window.height = 700, 800
+        window.cmd_center()
 
 
 @hook.subscribe.client_new

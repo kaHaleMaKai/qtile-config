@@ -233,5 +233,9 @@ keys = KeyList(
         "M-<F6>": create_popup,
         "M-v": lazy.group["scratchpad"].dropdown_toggle("signal"),
         "M-S-g": "xdotool key Return",
+        "M-o": "dunstctl close",
+        "M-S-o": "dunstctl close-all",
+        "M-C-o": "dunstctl history-pop",
+        "M-C-S-o": "dunstctl context",
     }
 )

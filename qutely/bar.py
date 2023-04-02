@@ -24,6 +24,8 @@ import datetime
 from qutely import util, color, procs
 from pathlib import Path
 
+IFACES = ["wlp0s20f3"]
+
 PARTITIONS = {
     "/": "G",
     "/home": "G",
@@ -85,7 +87,6 @@ class UPowerWidget(widget.UPowerWidget):
 
 
 class GroupBox(widget.GroupBox):
-
     defaults = [
         (
             "always_visible_groups",
@@ -137,7 +138,6 @@ class GroupBox(widget.GroupBox):
 
 
 class ArrowGraph(_GenPollText):
-
     defaults = [
         ("colors", ("005000", "909000", "e00000"), "4-tuple of colors to use for graph"),
         ("max", 100, "maximum value for graph (greater values will be clipped)"),
@@ -176,7 +176,6 @@ class ArrowGraph(_GenPollText):
 
 
 class DotGraph(_GenPollText):
-
     defaults = [
         ("colors", ("00b800", "c0c000", "b80000"), "4-tuple of colors to use for graph"),
         ("max", 100, "maximum value for graph (greater values will be clipped)"),
@@ -234,14 +233,12 @@ def get_num_procs():
 
 def get_net_throughput():
     net = psutil.net_io_counters(pernic=True)
-    devs = ["something"]
-    up = sum(net[dev].bytes_sent for dev in devs)
-    down = sum(net[dev].bytes_recv for dev in devs)
+    up = sum(net_dev.bytes_sent for dev in IFACES if (net_dev := net.get(dev, 0)))
+    down = sum(net_dev.bytes_recv for dev in IFACES if (net_dev := net.get(dev, 0)))
     return up, down
 
 
 class BorgBackupWidget(CheckAndWarnWidget):
-
     borg_state_msgs = {
         CheckState.OK: "has finished",
         CheckState.WARN: "required",
@@ -438,19 +435,19 @@ def get_bar(screen_idx: int):
 
     widgets.append(space())
 
-#    battery = UPowerWidget(
-#        # battery_name="hidpp_battery_0",
-#        border_charge_colour=color.DARK_GREEN,
-#        fill_charge=color.BRIGHT_GREEN,
-#        fill_critical=color.RED,
-#        fill_normal=color.MID_BLUE_GRAY,
-#        border_colour=color.DARK_ORANGE,
-#        border_critical_colour=color.BRIGHT_RED,
-#        mouse_callbacks={"Button3": proc_fn("xfce4-power-manager", "--customize")},
-#        **settings,
-#    )
-#    widgets.append(battery)
-#    widgets.append(space())
+    battery = UPowerWidget(
+        # battery_name="hidpp_battery_0",
+        border_charge_colour=color.DARK_GREEN,
+        fill_charge=color.BRIGHT_GREEN,
+        fill_critical=color.RED,
+        fill_normal=color.MID_BLUE_GRAY,
+        border_colour=color.DARK_ORANGE,
+        border_critical_colour=color.BRIGHT_RED,
+        mouse_callbacks={"Button3": proc_fn("xfce4-power-manager", "--customize")},
+        **settings,
+    )
+    widgets.append(battery)
+    widgets.append(space())
 
     volume_settings = settings | dict(
         cardid=0,
@@ -477,17 +474,15 @@ def get_bar(screen_idx: int):
     )
     widgets.append(cpu_graph)
 
-#    net_graph = ArrowGraph(
-#        func=get_net_throughput,
-#        max=(1 << 20),
-#        update_interval=1,
-#        use_diff=True,
-#        up_first=False,
-#        **settings,
-#    )
-#    widgets.append(net_graph)
-#
-    # menu = SpawnedMenu("num_procs", {"a": lambda qtile: print("hello")}, min_width=10)
+    net_graph = ArrowGraph(
+        func=get_net_throughput,
+        max=(1 << 20),
+        update_interval=1,
+        use_diff=True,
+        up_first=False,
+        **settings,
+    )
+    widgets.append(net_graph)
 
     num_procs = widget.GenPollText(
         func=get_num_procs,

@@ -430,6 +430,7 @@ def get_bar(screen_idx: int):
                 partition=partition,
                 warn_color=color.BRIGHT_ORANGE,
                 measure=unit,
+                update_interval=5,
             )
             widgets.append(df)
     else:

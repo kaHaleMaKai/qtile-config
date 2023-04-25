@@ -30,7 +30,7 @@ shadow-exclude = [ {% for item in shadow_excludes -%}
 {%- endfor %} ];
 shadow-ignore-shaped = false;
 xinerama-shadow-crop = false;
-inactive-opacity = 0.9;
+{%- if inactive_opacity|default(false) %}inactive-opacity = {{ inactive_opactity }}{% endif %}
 active-opacity = 1.0;
 frame-opacity = 0.7;
 inactive-opacity-override = false;

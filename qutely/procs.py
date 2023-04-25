@@ -29,7 +29,6 @@ class ProcMsg(TypedDict):
 
 
 class Dunstifier:
-
     low_urgency = "low"
     normal_urgency = "normal"
     high_urgency = "critical"
@@ -114,7 +113,6 @@ class Dunstifier:
 
 
 class Proc(ABC):
-
     default_timeout = 60
     min_timeout = 0.01
     default_dunstifier = Dunstifier(replace=False, name="command has failed")
@@ -249,7 +247,6 @@ class Proc(ABC):
 
     @classmethod
     async def await_many(cls, *aws: Union["Proc", Awaitable[Any]]) -> None:
-
         res = await asyncio.gather(
             *tuple(aw.run() if isinstance(aw, Proc) else aw for aw in aws),
             return_exceptions=True,
@@ -521,7 +518,6 @@ class SyncProc(Proc):
 
 
 class LegacySyncProc:
-
     timeout = 2
 
     def __init__(
@@ -668,6 +664,8 @@ nextcloud_sync = Proc("nextcloud", bg=True)
 kde_connect = Proc("kdeconnect-indicator", bg=True)
 setxkbmap = Proc("setxkbmap", "de", "deadacute", shell=True)
 fakecam = Proc("fakecam", "start")
+pulseaudio = Proc("pulseaudio", "-D")
+light = Proc("light")
 activate_touchpad = Proc(
     "xinput",
     "set-prop",
@@ -675,3 +673,4 @@ activate_touchpad = Proc(
     "libinput Tapping Enabled",
     "1",
 )
+kitty = Proc("kitty")

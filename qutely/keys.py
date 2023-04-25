@@ -1,6 +1,5 @@
 import asyncio
 import shlex
-from typing import Awaitable, Any
 from qutely.procs import Proc
 from libqtile.config import EzKey
 from libqtile.command import lazy, _LazyTree
@@ -23,6 +22,9 @@ from qutely.util import (
     history_forward,
     lock_screen,
     toggle_sticky_window,
+    kbd_backlight,
+    lazy_coro,
+    provide_terminal,
 )
 
 modifier_keys = {
@@ -54,12 +56,6 @@ else:
 mod_key = inverse_modifier_keys[mod_abbrev]
 
 
-def lazy_coro(f: Awaitable[Any], *args: Any, **kwargs: Any) -> LazyCall:
-    return lazy.function(
-        lambda qtile: qtile.call_soon(asyncio.create_task, f(qtile, *args, **kwargs))
-    )
-
-
 class KeyList(list):
     def __init__(self, key_dict):
         super().__init__()
@@ -69,7 +65,10 @@ class KeyList(list):
         d = key_dict.copy()
         d.update(kwargs)
         for k, vs in d.items():
-            self.add_key(k, vs)
+            try:
+                self.add_key(k, vs)
+            except Exception as e:
+                raise ValueError(f"cannot parse key {k=}, {vs=}, {vs.name}") from e
 
     def add_key(self, k, vs):
         entry = EzKey(self.parse_key(k), *self.as_command(vs))
@@ -136,6 +135,10 @@ def create_popup(qtile):
 
 keys = KeyList(
     {
+        "M-S-r": reload_qtile,
+        "M-<Escape>": lazy_coro(reload_qtile, light_theme=True),
+        "M-C-r": lazy.function(restart_qtile),
+        "M-C-q": lazy.shutdown,
         "M-<Left>": prev_group,
         "M-<Right>": next_group,
         "M-y": move_window_to_offset_group(-1),
@@ -181,21 +184,17 @@ keys = KeyList(
         "M-S-<period>": lazy.window.kill,
         "M-q": "fakecam toggle",
         "M-S-q": "fakecam choose-background",
-        "M-C-q": lazy.shutdown,
         "M-r": "rofi -i -show run",
-        "M-S-r": reload_qtile,
-        "M-<Escape>": lazy_coro(reload_qtile, light_theme=True),
-        "M-C-r": lazy.function(restart_qtile),
         "M-S-<F12>": start_distraction_free_mode,
         "M-<F12>": stop_distraction_free_mode,
         "M-p": history_back,
         "M-S-p": history_forward,
-        "M-<Return>": "kitty",
+        "M-<Return>": provide_terminal,
         "M-<minus>": "xdotool key Menu",
         "M-S-<Left>": "shiftred r-",
         "M-S-<Right>": "shiftred r+",
-        "M-S-<Down>": "shiftred b-",
-        "M-S-<Up>": "shiftred b+",
+        "M-S-<Down>": lazy.widget["brightness"].brightness_down(),
+        "M-S-<Up>": lazy.widget["brightness"].brightness_up(),
         "M-S-0": "shiftred 5100:.8",
         "M-0": "shiftred 5800:1",
         "M-C-0": "shiftred 6500:1",
@@ -209,7 +208,6 @@ keys = KeyList(
         "M-<F8>": "totp",
         "M-<F9>": "rofi-menu",
         "M-<F10>": "rofi-pass",
-        # "M-<udiaeresis>": "rofimoji",
         "M-S-u": "toggle-unclutter",
         "M-s": "flameshot gui",
         "M-S-s": "flameshot full --clipboard",
@@ -237,5 +235,6 @@ keys = KeyList(
         "M-S-o": "dunstctl close-all",
         "M-C-o": "dunstctl history-pop",
         "M-C-S-o": "dunstctl context",
+        "A-<space>": lazy_coro(kbd_backlight.increase_brightness),
     }
 )

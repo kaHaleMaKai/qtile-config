@@ -28,10 +28,12 @@ picom.conf:
   shadow_radius: 10
   shadow_offset: -5
   shadow_opacity: 0.3
-  blur_kernel: 11x11gaussian
+  # inactive_opacity: 0.9;
+  # blur_kernel: 11x11gaussian
   fading: true
   fade_in_step: 0.12
   backend: glx
+  # vsync: true
   shadow_excludes:
     - name: Notification
     - class: Conkey

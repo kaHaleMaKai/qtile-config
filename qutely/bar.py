@@ -24,16 +24,19 @@ import datetime
 from qutely import util, color, procs
 from pathlib import Path
 
+BAR_HEIGHT = 26
 IFACES = ["wlp0s20f3"]
 
 PARTITIONS = {
-    "/": "G",
-    "/home": "G",
-    "/tmp": "G",
-    "/var": "G",
-    "/boot": "M",
-    "/boot/efi": "M",
-    "/var/lib/docker": "G",
+    "/": "M",
+    "/home": "M",
+    "/tmp": "M",
+    "/opt": "M",
+    "/var": "M",
+    "/home/lars/git": "M",
+    "/home/lars/local": "M",
+    "/var/cache": "M",
+    "/var/log": "M",
 }
 
 # import dbus_next
@@ -60,7 +63,7 @@ settings = dict(
 def proc_fn(*args: str, shell: bool = False) -> Callable[[], None]:
     from libqtile import qtile
 
-    cmd_args = (["xfce4-terminal", "-e"]) if shell else []
+    cmd_args = (["kitty"]) if shell else []
     cmd_args += args
 
     def run() -> None:
@@ -435,6 +438,16 @@ def get_bar(screen_idx: int):
 
     widgets.append(space())
 
+    brightness_settings = {
+        "name": "brightness",
+        "mode": "popup",
+        "bar_height": int(BAR_HEIGHT * 0.7),
+        "border_width": int(BAR_HEIGHT * 0.3),
+    }
+    brightness = widget.BrightnessControl(**brightness_settings, **settings)
+
+    widgets.append(brightness)
+
     battery = UPowerWidget(
         # battery_name="hidpp_battery_0",
         border_charge_colour=color.DARK_GREEN,
@@ -497,4 +510,4 @@ def get_bar(screen_idx: int):
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
     widgets.append(layout)
 
-    return bar.Bar(widgets=widgets, size=26, background=bar_bg)
+    return bar.Bar(widgets=widgets, size=BAR_HEIGHT, background=bar_bg)

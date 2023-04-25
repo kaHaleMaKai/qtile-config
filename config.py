@@ -24,6 +24,8 @@ if not util.is_light_theme:
 from qutely.bar import get_bar
 
 
+NUMBER_OF_TERMINALS = 4
+
 scratchpad = ScratchPad(
     "scratchpad",
     [
@@ -61,12 +63,13 @@ for g, match in matcher.items():
     util.group_dict[g].matches.extend(match)
 
 for group in util.groups:
-    keys.add_keys(
-        {
-            f"M-{group.name}": util.go_to_group(group),
-            f"M-S-{group.name}": lazy.window.togroup(group.name),
-        }
-    )
+    if len(group.name) == 1:
+        keys.add_keys(
+            {
+                f"M-{group.name}": util.go_to_group(group),
+                f"M-S-{group.name}": lazy.window.togroup(group.name),
+            }
+        )
 
 layout_settings = {}
 layout_settings["border_width"] = 0
@@ -160,11 +163,12 @@ async def autostart_once() -> None:
         procs.unclutter,
         procs.network_manager,
         procs.xfce4_power_manager,
-        procs.activate_touchpad,
+        # procs.activate_touchpad,
     ]
     if not util.in_debug_mode:
         ps.extend(
             [
+                procs.pulseaudio,
                 procs.screensaver,
                 procs.polkit_agent,
                 procs.xss_lock,
@@ -189,6 +193,8 @@ async def autostart() -> None:
                 util.render_dunstrc(),
                 util.render_picom_config(),
                 util.render_terminalrc(),
+                util.kbd_backlight.configure(),
+                util.spawn_terminal()
             ]
         )
     if util.is_light_theme:

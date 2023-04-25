@@ -5,11 +5,13 @@ import yaml
 import pywal
 from qutely import procs, templates
 import asyncio
+from asyncio.subprocess import create_subprocess_exec as new_proc
+import aiofiles
 import subprocess
 import psutil
 from itertools import chain
 from pathlib import Path
-from typing import Iterable, TypedDict, Any, cast
+from typing import Iterable, TypedDict, Any, cast, Awaitable
 from libqtile import hook
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
@@ -18,11 +20,15 @@ from libqtile.command import lazy
 from libqtile.lazy import LazyCall
 from libqtile.layout.base import Layout
 from libqtile.layout.tree import TreeTab
-from libqtile.config import Group
+from libqtile.config import Group, Match
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
+# import qtile_mutable_scratch as mut_scratch
 from qutely.color import complement, add_hashtag
 
+TERM_GROUP = ""
+TERM_SUPPLY_ROLE = "kitty-supply"
+TERM_IN_USE_ROLE = "kitty"
 
 class ScreenDict(TypedDict):
     _primary: str
@@ -36,8 +42,14 @@ class ScreenDict(TypedDict):
 group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], int]]]] = {
     "role": {},
     "class": {
-        "firefox": 0xE745,  # 0xf269,
-        "firefox-aurora": 0xE745,  # 0xf269,
+        "firefox-aurora": {
+            "regexes": {
+                re.compile(r"\(Meeting\).*Microsoft Teams.*Firefox"): 0xF447,
+                re.compile(r"^https://teams.microsoft.com.*Microsoft Teams.*Firefox"): 0xF7C8,
+            },
+            "default": 0xE745
+        },
+        # "firefox": 0xE745,  # 0xf269,
         "xfce4-terminal": 0xE795,
         "kitty": {
             "default": 0xF120,
@@ -81,6 +93,10 @@ THEME_BG_KEY = "QTILE_LIGHT_THEME"
 in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
 group_dict = {name: Group(name) for name in "123456789abcdef"}
 groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
+empty_group = Group("")
+groups.append(empty_group)
+# mutscr = mut_scratch.MutableScratch()
+# hook.subscribe.startup_complete(mutscr.qtile_startup)
 laptop_display = "eDP-1"
 light_theme_marker_file = Path("/tmp/qtile-light-theme")
 is_light_theme = os.environ.get(THEME_BG_KEY, "") == "1"
@@ -88,6 +104,12 @@ if is_light_theme:
     light_theme_marker_file.touch()
 else:
     light_theme_marker_file.unlink(missing_ok=True)
+
+
+def lazy_coro(f: Awaitable[Any], *args: Any, **kwargs: Any) -> LazyCall:
+    return lazy.function(
+        lambda qtile: qtile.call_soon(asyncio.create_task, f(qtile, *args, **kwargs))
+    )
 
 
 def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
@@ -620,3 +642,67 @@ def setup_all_group_icons() -> None:
             set_group_label_from_window_class(group.current_window)
         else:
             group.cmd_set_label(None)
+
+
+class KbdBacklight:
+    def __init__(self, name: str) -> None:
+        # dell::kbd_backlight/brightness
+        self.name = name
+        self.dev = Path("/sys/class/leds") / name
+        self.value = 0
+        self.max_value = 0
+
+    async def configure(self) -> None:
+        async with aiofiles.open(self.dev / "max_brightness", "r") as f:
+            self.max_value = int(await f.read())
+        async with aiofiles.open(self.dev / "brightness", "r") as f:
+            self.value = int(await f.read())
+
+    async def increase_brightness(self, _: Any = None) -> None:
+        if not self.max_value:
+            raise ValueError("KbdBacklight has not been initialized. Please run configure() first")
+        value = (self.value + 1) % (self.max_value + 1)
+        async with aiofiles.open(self.dev / "brightness", "w") as f:
+            await f.write(str(value))
+        self.value = value
+
+
+kbd_backlight = KbdBacklight("dell::kbd_backlight")
+
+
+def set_role(window: Window, role: str) -> None:
+    window.window.set_property("WM_WINDOW_ROLE", role, "UTF8_STRING", 8)
+
+
+@lazy.function
+def provide_terminal(qtile: Qtile) -> None:
+    try:
+        window = qtile.groups_map[TERM_GROUP].windows[0]
+    except IndexError as e:
+        logger.warn(e)
+        return
+    set_role(window, TERM_IN_USE_ROLE)
+    window.togroup(qtile.current_group.name)
+    window.focus(warp=True)
+
+
+async def spawn_terminal() -> None:
+    from libqtile import qtile
+
+    if len(qtile.groups_map[TERM_GROUP].windows) < 2:
+        await new_proc("kitty", close_fds=True)
+
+
+@hook.subscribe.client_new
+def send_kitty_to_empty_group(window: Window) -> None:
+    if window.get_wm_class()[1] == "kitty" and not window.get_wm_role():
+        set_role(window, TERM_SUPPLY_ROLE)
+        window.togroup(TERM_GROUP)
+
+
+@hook.subscribe.group_window_add
+async def add_more_terminals(group: Group, window: Window) -> None:
+    from libqtile import qtile
+
+    if group.name != TERM_GROUP and window.get_wm_class()[1] == "kitty" and window.get_wm_role() == TERM_IN_USE_ROLE:
+        await spawn_terminal()

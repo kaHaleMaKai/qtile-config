@@ -671,7 +671,8 @@ kbd_backlight = KbdBacklight("dell::kbd_backlight")
 
 
 def is_term_supply(window: Window) -> None:
-    return window.window.get_property(TERM_ATTRIBUTE, "CARDINAL", unpack=int)
+    r = window.window.get_property(TERM_ATTRIBUTE, "CARDINAL", unpack=int)
+    return bool(r[0])
 
 
 def set_term_supply(window: Window, as_supply: bool = True) -> None:

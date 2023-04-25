@@ -27,8 +27,8 @@ from libqtile.log_utils import logger
 from qutely.color import complement, add_hashtag
 
 TERM_GROUP = ""
-TERM_SUPPLY_ROLE = "kitty-supply"
-TERM_IN_USE_ROLE = "kitty"
+TERM_ATTRIBUTE = "IS_KITTY_SUPPLY"
+
 
 class ScreenDict(TypedDict):
     _primary: str
@@ -670,8 +670,12 @@ class KbdBacklight:
 kbd_backlight = KbdBacklight("dell::kbd_backlight")
 
 
-def set_role(window: Window, role: str) -> None:
-    window.window.set_property("WM_WINDOW_ROLE", role, "UTF8_STRING", 8)
+def is_term_supply(window: Window) -> None:
+    return window.window.get_property(TERM_ATTRIBUTE, "CARDINAL", unpack=int)
+
+
+def set_term_supply(window: Window, as_supply: bool = True) -> None:
+    window.window.set_property(TERM_ATTRIBUTE, 1 if as_supply else 0, "CARDINAL", 32)
 
 
 @lazy.function
@@ -681,7 +685,7 @@ def provide_terminal(qtile: Qtile) -> None:
     except IndexError as e:
         logger.warn(e)
         return
-    set_role(window, TERM_IN_USE_ROLE)
+    set_term_supply(window, as_supply=False)
     window.togroup(qtile.current_group.name)
     window.focus(warp=True)
 
@@ -696,13 +700,11 @@ async def spawn_terminal() -> None:
 @hook.subscribe.client_new
 def send_kitty_to_empty_group(window: Window) -> None:
     if window.get_wm_class()[1] == "kitty" and not window.get_wm_role():
-        set_role(window, TERM_SUPPLY_ROLE)
+        set_term_supply(window, as_supply=True)
         window.togroup(TERM_GROUP)
 
 
 @hook.subscribe.group_window_add
 async def add_more_terminals(group: Group, window: Window) -> None:
-    from libqtile import qtile
-
-    if group.name != TERM_GROUP and window.get_wm_class()[1] == "kitty" and window.get_wm_role() == TERM_IN_USE_ROLE:
+    if group.name != TERM_GROUP and window.get_wm_class()[1] == "kitty" and not is_term_supply(window):
         await spawn_terminal()

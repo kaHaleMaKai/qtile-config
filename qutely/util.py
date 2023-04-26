@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import math
 import yaml
 import pywal
 from qutely import procs, templates
@@ -23,6 +24,7 @@ from libqtile.layout.tree import TreeTab
 from libqtile.config import Group, Match
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
+
 # import qtile_mutable_scratch as mut_scratch
 from qutely.color import complement, add_hashtag
 
@@ -47,7 +49,7 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
                 re.compile(r"\(Meeting\).*Microsoft Teams.*Firefox"): 0xF447,
                 re.compile(r"^https://teams.microsoft.com.*Microsoft Teams.*Firefox"): 0xF7C8,
             },
-            "default": 0xE745
+            "default": 0xE745,
         },
         # "firefox": 0xE745,  # 0xf269,
         "xfce4-terminal": 0xE795,
@@ -140,7 +142,6 @@ def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
 
 
 def get_screens() -> ScreenDict:
-
     cmd = ["xrandr"]
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 
@@ -239,25 +240,36 @@ def get_group_and_screen_idx(
 
 
 def _get_group_and_screen_idx_static(qtile: Qtile, offset: int) -> tuple[_Group, int]:
-    group = qtile.current_group.name
-    idx = (int(group, 16) - 1 + offset) % len(groups)
-    next_group = groups[idx].name
-    screen = 0 if num_screens == 1 or next_group < "a" else 1
-    return qtile.groups_map[next_group], screen
+    group = qtile.current_group
+    for i in range(2):
+        if offset > 0:
+            group = group.get_next_group()
+        else:
+            group = group.get_previous_group()
+        if group.name:
+            break
+    return group, group.screen
+
+
+def sign(x: int) -> int:
+    return int(math.copysign(1, x))
 
 
 def _get_group_and_screen_idx_dynamic(qtile: Qtile, offset: int) -> tuple[_Group, int]:
     current_group = qtile.current_group
     skip_empty = not bool(current_group.windows)
-    if offset < 0:
-        next_group = current_group.get_previous_group(skip_empty)
-        if not skip_empty and not next_group.windows:
-            neighbour = next_group.get_previous_group(skip_empty=True)
-            next_group = neighbour.get_next_group(skip_empty=False)
-    else:
-        next_group = current_group.get_next_group(skip_empty)
-    name = next_group.name
-    screen = 0 if num_screens == 1 or name < "a" else 1
+    next_group = current_group
+    for i in range(2):
+        if offset < 0:
+            next_group = next_group.get_previous_group(skip_empty)
+            if not skip_empty and not next_group.windows:
+                neighbour = next_group.get_previous_group(skip_empty=True)
+                next_group = neighbour.get_next_group(skip_empty=False)
+        else:
+            next_group = next_group.get_next_group(skip_empty)
+        if next_group.name:
+            break
+    screen = 0 if num_screens == 1 or next_group.name < "a" else 1
     return next_group, screen
 
 
@@ -319,17 +331,43 @@ def history_forward() -> LazyCall:
     return f
 
 
-def move_window_to_offset_group(offset: int) -> LazyCall:
+def move_window_to_group(name: str) -> LazyCall:
 
+    @lazy.function
+    def f(qtile: Qtile) -> None:
+        if not (window := qtile.current_window):
+            return
+        label = qtile.current_group.label
+        window.togroup(name)
+
+        if not qtile.current_group.current_window:
+            qtile.current_group.cmd_set_label(None)
+        else:
+            set_group_label_from_window_class(window)
+        dest_group = qtile.groups_map[name]
+        dest_group.cmd_set_label(label)
+
+    return f
+
+
+def move_window_to_offset_group(offset: int) -> LazyCall:
     if not offset:
         raise ValueError("offset must not be 0")
 
     @lazy.function
     def f(qtile: Qtile):
-        current = qtile.current_group.name
+        current_group = qtile.current_group
         next, _ = get_group_and_screen_idx(qtile, offset)
-        # if (offset < 0 and next.name < current) or (offset > 0 and next.name > current):
-        qtile.current_window.togroup(next.name)
+        label = current_group.label
+        window = qtile.current_window
+        window.togroup(next.name)
+
+        if not current_group.current_window:
+            current_group.cmd_set_label(None)
+        else:
+            set_group_label_from_window_class(window)
+
+        next.cmd_set_label(label)
 
     return f
 
@@ -635,7 +673,7 @@ def setup_all_group_icons() -> None:
     from libqtile import qtile
 
     for group in qtile.groups_map.values():
-        if isinstance(group, ScratchPad):
+        if isinstance(group, ScratchPad) or not group.name:
             continue
         group = cast(_Group, group)
         if group.current_window:
@@ -660,7 +698,9 @@ class KbdBacklight:
 
     async def increase_brightness(self, _: Any = None) -> None:
         if not self.max_value:
-            raise ValueError("KbdBacklight has not been initialized. Please run configure() first")
+            raise ValueError(
+                "KbdBacklight has not been initialized. Please run configure() first"
+            )
         value = (self.value + 1) % (self.max_value + 1)
         async with aiofiles.open(self.dev / "brightness", "w") as f:
             await f.write(str(value))
@@ -672,7 +712,7 @@ kbd_backlight = KbdBacklight("dell::kbd_backlight")
 
 def is_term_supply(window: Window) -> None:
     r = window.window.get_property(TERM_ATTRIBUTE, "CARDINAL", unpack=int)
-    return bool(r[0])
+    return bool(r) and bool(r[0])
 
 
 def set_term_supply(window: Window, as_supply: bool = True) -> None:
@@ -707,5 +747,17 @@ def send_kitty_to_empty_group(window: Window) -> None:
 
 @hook.subscribe.group_window_add
 async def add_more_terminals(group: Group, window: Window) -> None:
-    if group.name != TERM_GROUP and window.get_wm_class()[1] == "kitty" and not is_term_supply(window):
+    if (
+        group.name != TERM_GROUP
+        and window.get_wm_class()[1] == "kitty"
+        and not is_term_supply(window)
+    ):
         await spawn_terminal()
+
+
+@hook.subscribe.addgroup
+def hide_empty_group(name: str) -> None:
+    if not name:
+        from libqtile import qtile
+
+        qtile.groups_map[""].set_screen(None)

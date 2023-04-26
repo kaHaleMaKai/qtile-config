@@ -67,7 +67,7 @@ for group in util.groups:
         keys.add_keys(
             {
                 f"M-{group.name}": util.go_to_group(group),
-                f"M-S-{group.name}": lazy.window.togroup(group.name),
+                f"M-S-{group.name}": util.move_window_to_group(group.name),
             }
         )
 
@@ -274,7 +274,7 @@ def move_sticky_windows():
 @hook.subscribe.client_focus
 @hook.subscribe.client_managed
 def set_group_icon(window: Window | None) -> None:
-    if not window:
+    if not window or not window.group or not window.group.name:
         from libqtile import qtile
 
         qtile.current_group.cmd_set_label(None)

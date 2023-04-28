@@ -666,7 +666,7 @@ def set_group_label_from_window_class(window: Window) -> None:
     else:
         label = None
         msg = f"missing label for window name={window.name!r}, role={window.get_wm_role()!r}, class={window.get_wm_class()!r}"
-        logger.warn()
+        logger.warn(msg)
     label = chr(ch) if ch else None
     group.cmd_set_label(label)
 

@@ -341,7 +341,6 @@ def move_window_to_group(name: str) -> LazyCall:
         window.togroup(name)
 
         if not qtile.current_group.current_window:
-            logger.warn(f"unsetting group label from move_window_to_group() for group {qtile.current_group.name}")
             qtile.current_group.cmd_set_label(None)
         else:
             set_group_label_from_window_class(window)
@@ -364,7 +363,6 @@ def move_window_to_offset_group(offset: int) -> LazyCall:
         window.togroup(next.name)
 
         if not current_group.current_window:
-            logger.warn(f"unsetting group label from move_window_to_offset_group() for group {current_group.name}")
             current_group.cmd_set_label(None)
         else:
             set_group_label_from_window_class(window)
@@ -681,7 +679,6 @@ def setup_all_group_icons() -> None:
         if group.current_window:
             set_group_label_from_window_class(group.current_window)
         else:
-            logger.warn(f"unsetting group label from setup_all_group_icons() for group {group.name}")
             group.cmd_set_label(None)
 
 

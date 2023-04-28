@@ -241,7 +241,7 @@ def handle_floating_for_new_clients(window: Window) -> None:
 
 
 @hook.subscribe.client_killed
-def cycle_to_next_client_on_empty_group(window: Window) -> None:
+def cycle_to_next_client_or_empty_group(window: Window) -> None:
     current_group = window.qtile.current_group
     if len(current_group.windows) > 1 or window not in current_group.windows:
         return
@@ -271,10 +271,11 @@ def move_sticky_windows():
 
 
 @hook.subscribe.client_name_updated
-@hook.subscribe.client_focus
 @hook.subscribe.client_managed
+@hook.subscribe.client_focus
 def set_group_icon(window: Window | None) -> None:
-    if not window or not window.group or not window.group.name:
+
+    if window is None:
         from libqtile import qtile
 
         qtile.current_group.cmd_set_label(None)

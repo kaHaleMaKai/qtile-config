@@ -10,6 +10,7 @@ if TYPE_CHECKING:
     from libqtile import widget
 else:
     from qtile_extras import widget
+from qtile_extras.widget.decorations import BorderDecoration
 from libqtile.widget.base import Mirror
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from libqtile.scratchpad import ScratchPad
@@ -45,12 +46,12 @@ if util.is_light_theme:
     background = color.WHITE
     mid_color = color.BRIGHT_GRAY
     foreground = color.DARK_GRAY
-    bar_bg = background
+    BAR_BG = background
 else:
     background = None
     mid_color = color.DARK_GRAY
     foreground = color.BRIGHT_GRAY
-    bar_bg = "#000000ff"
+    BAR_BG = "#000000ff"
 
 
 settings = dict(
@@ -421,8 +422,8 @@ def get_bar(screen_idx: int):
         widgets.append(space())
         widgets.append(kbd)
 
-        # widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
-        widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
+        widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
+        # widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
         for partition, unit in PARTITIONS.items():
             df = widget.DF(
                 visible_on_warn=True,
@@ -441,8 +442,13 @@ def get_bar(screen_idx: int):
     brightness_settings = {
         "name": "brightness",
         "mode": "popup",
-        "bar_height": int(BAR_HEIGHT * 0.7),
         "border_width": int(BAR_HEIGHT * 0.3),
+        "decorations": [
+            BorderDecoration(
+                color="#ff0000",
+                padding_x=10,
+            )
+        ],
     }
     brightness = widget.BrightnessControl(**brightness_settings, **settings)
 
@@ -510,4 +516,4 @@ def get_bar(screen_idx: int):
     layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
     widgets.append(layout)
 
-    return bar.Bar(widgets=widgets, size=BAR_HEIGHT, background=bar_bg)
+    return bar.Bar(widgets=widgets, size=BAR_HEIGHT, background=BAR_BG)

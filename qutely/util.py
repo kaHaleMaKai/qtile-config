@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import math
+from enum import Enum
 import yaml
 import pywal
 from qutely import procs, templates
@@ -35,6 +36,12 @@ TERM_ATTRIBUTE = "IS_KITTY_SUPPLY"
 class ScreenDict(TypedDict):
     _primary: str
     screens: dict[str, dict[str, int]]
+
+
+class TerminalSupportStatus(Enum):
+    NOT_INITIALIZED = 0
+    SUPPORT = 1
+    IN_USE = 2
 
 
 # vim: 0xe7c5 or 0xe62b
@@ -713,9 +720,11 @@ class KbdBacklight:
 kbd_backlight = KbdBacklight("dell::kbd_backlight")
 
 
-def is_term_supply(window: Window) -> None:
+def get_term_supply_status(window: Window) -> TerminalSupportStatus:
     r = window.window.get_property(TERM_ATTRIBUTE, "CARDINAL", unpack=int)
-    return bool(r) and bool(r[0])
+    if not r:
+        return TerminalSupportStatus.NOT_INITIALIZED
+    return TerminalSupportStatus.SUPPORT if r[1] else TerminalSupportStatus.IN_USE
 
 
 def set_term_supply(window: Window, as_supply: bool = True) -> None:
@@ -744,7 +753,10 @@ async def spawn_terminal() -> None:
 
 @hook.subscribe.client_new
 def send_kitty_to_empty_group(window: Window) -> None:
-    if window.get_wm_class()[1] == "kitty" and not window.get_wm_role():
+    if (
+        window.get_wm_class()[1] == "kitty"
+        and get_term_supply_status(window) is TerminalSupportStatus.NOT_INITIALIZED
+    ):
         set_term_supply(window, as_supply=True)
         window.togroup(TERM_GROUP)
 
@@ -754,7 +766,7 @@ async def add_more_terminals(group: Group, window: Window) -> None:
     if (
         group.name != TERM_GROUP
         and window.get_wm_class()[1] == "kitty"
-        and not is_term_supply(window)
+        and get_term_supply_status(window) is TerminalSupportStatus.IN_USE
     ):
         await spawn_terminal()
 

@@ -264,9 +264,13 @@ def sign(x: int) -> int:
 
 def _get_group_and_screen_idx_dynamic(qtile: Qtile, offset: int) -> tuple[_Group, int]:
     current_group = qtile.current_group
+    orig_group = current_group
     skip_empty = not bool(current_group.windows)
     next_group = current_group
-    for i in range(2):
+    for i in range(3):
+        if i == 2:
+            skip_empty = False
+            next_group = orig_group
         if offset < 0:
             next_group = next_group.get_previous_group(skip_empty)
             if not skip_empty and not next_group.windows:

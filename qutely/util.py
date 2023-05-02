@@ -44,6 +44,10 @@ class TerminalSupportStatus(Enum):
     IN_USE = 2
 
 
+def on_reload(f: Any) -> Any:
+    return hook.subscribe._subscribe("custom_reload", f)
+
+
 # vim: 0xe7c5 or 0xe62b
 # postgres: 0xf703,
 # python: 0xe73cf
@@ -708,9 +712,10 @@ class KbdBacklight:
 
     async def increase_brightness(self, _: Any = None) -> None:
         if not self.max_value:
-            raise ValueError(
-                "KbdBacklight has not been initialized. Please run configure() first"
-            )
+            await self.configure()
+            # raise ValueError(
+            #     "KbdBacklight has not been initialized. Please run configure() first"
+            # )
         value = (self.value + 1) % (self.max_value + 1)
         async with aiofiles.open(self.dev / "brightness", "w") as f:
             await f.write(str(value))
@@ -777,3 +782,8 @@ def hide_empty_group(name: str) -> None:
         from libqtile import qtile
 
         qtile.groups_map[""].set_screen(None)
+
+
+@on_reload
+async def init_more_widgets() -> None:
+    await kbd_backlight.configure()

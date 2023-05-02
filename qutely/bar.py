@@ -422,8 +422,8 @@ def get_bar(screen_idx: int):
         widgets.append(space())
         widgets.append(kbd)
 
-        widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
-        # widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
+        # widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
+        widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
         for partition, unit in PARTITIONS.items():
             df = widget.DF(
                 visible_on_warn=True,

@@ -193,8 +193,7 @@ async def autostart() -> None:
                 util.render_dunstrc(),
                 util.render_picom_config(),
                 util.render_terminalrc(),
-                util.kbd_backlight.configure(),
-                util.spawn_terminal()
+                util.spawn_terminal(),
             ]
         )
     if util.is_light_theme:
@@ -274,7 +273,6 @@ def move_sticky_windows():
 @hook.subscribe.client_managed
 @hook.subscribe.client_focus
 def set_group_icon(window: Window | None) -> None:
-
     if window is None:
         from libqtile import qtile
 

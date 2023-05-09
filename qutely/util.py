@@ -285,6 +285,14 @@ def _get_group_and_screen_idx_dynamic(qtile: Qtile, offset: int) -> tuple[_Group
             next_group = next_group.get_next_group(skip_empty)
         if next_group.name:
             break
+    if offset > 0 and next_group.name < orig_group.name < "f":
+        next_group = qtile.groups_map["f"]
+    elif offset < 0:
+        if orig_group.name == "1":
+            next_group = qtile.groups_map["f"]
+        elif orig_group.name == "f":
+            next_group = qtile.groups_map["e"]
+
     screen = 0 if num_screens == 1 or next_group.name < "a" else 1
     return next_group, screen
 
@@ -748,7 +756,7 @@ def get_term_supply_status(window: Window) -> TerminalSupportStatus:
     r = window.window.get_property(TERM_ATTRIBUTE, "CARDINAL", unpack=int)
     if not r:
         return TerminalSupportStatus.NOT_INITIALIZED
-    return TerminalSupportStatus.SUPPORT if r[1] else TerminalSupportStatus.IN_USE
+    return TerminalSupportStatus.SUPPORT if r[0] else TerminalSupportStatus.IN_USE
 
 
 def set_term_supply(window: Window, as_supply: bool = True) -> None:

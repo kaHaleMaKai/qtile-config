@@ -36,7 +36,7 @@ async def render(
     comment_start="#",
     keep_modelines=True,
     overrides=None,
-):
+) -> bool:
     dest = os.path.abspath(os.path.expanduser(dest))
     src = src if src.endswith(".j2") else f"{src}.j2"
     if os.path.isdir(dest):
@@ -82,3 +82,6 @@ async def render(
         print(f"writing {src} to {dest}")
         with open(dest, "w") as f:
             f.write(content)
+        return True
+    else:
+        return False

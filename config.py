@@ -103,7 +103,7 @@ layouts = [
     layout.Bsp(border_focus=color.BLACK, border_normal=color.BLACK, **layout_settings),
     layout.MonadTall(ratio=0.68, **layout_settings),
     # layout.MonadWide(**layout_settings),
-    layout.Columns(insert_position=1, **layout_settings),
+    # layout.Columns(insert_position=1, **layout_settings),
     # layout.Matrix(insert_position=1, **layout_settings),
     # layout.RatioTile(**layout_settings),
     # layout.Tile(**layout_settings),
@@ -192,7 +192,7 @@ async def autostart() -> None:
             [
                 util.render_dunstrc(),
                 util.render_picom_config(),
-                util.render_terminalrc(),
+                util.render_kitty_config(),
                 util.spawn_terminal(),
             ]
         )

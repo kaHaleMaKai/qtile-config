@@ -20,15 +20,15 @@ from libqtile.backend.x11.window import Window, XWindow
 from libqtile.group import _Group
 from libqtile.command import lazy
 from libqtile.lazy import LazyCall
-from libqtile.layout.base import Layout
-from libqtile.layout.tree import TreeTab
-from libqtile.config import Group, Match
+from libqtile.config import Group
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
 
 # import qtile_mutable_scratch as mut_scratch
 from qutely.color import complement, add_hashtag
 
+TERM_SUPPLY_CLASS = "kitty-term-supply"
+TERM_CLASS = "kitty"
 TERM_GROUP = ""
 TERM_ATTRIBUTE = "IS_KITTY_SUPPLY"
 
@@ -64,7 +64,7 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
         },
         # "firefox": 0xE745,  # 0xf269,
         "xfce4-terminal": 0xE795,
-        "kitty": {
+        TERM_CLASS: {
             "default": 0xF120,
             "regexes": {
                 re.compile("^[^@]+@.*:"): 0xF1E6,
@@ -101,6 +101,7 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
         "ipython": 0xE235,  # 0xe73c,
     },
 }
+group_labels["class"][TERM_SUPPLY_CLASS] = group_labels["class"][TERM_CLASS]
 
 THEME_BG_KEY = "QTILE_LIGHT_THEME"
 in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
@@ -162,7 +163,7 @@ def get_screens() -> ScreenDict:
     return screens
 
 
-if "config" in sys.modules.keys():
+if "config" in sys.modules.keys() or os.environ.get("TEST_QTILE_FROM_CLI"):
     screens = get_screens()
     res = [{"width": s["width"], "height": s["height"]} for s in screens["screens"].values()]
     num_screens = len(screens["screens"])
@@ -492,8 +493,8 @@ def get_default_vars(**overrides):
     return default_vars
 
 
-async def render_dunstrc(**overrides) -> None:
-    await templates.render(
+async def render_dunstrc(**overrides) -> bool:
+    return await templates.render(
         "dunstrc",
         "~/.config/dunst",
         keep_comments=False,
@@ -502,8 +503,8 @@ async def render_dunstrc(**overrides) -> None:
     )
 
 
-async def render_picom_config(**overrides) -> None:
-    await templates.render(
+async def render_picom_config(**overrides) -> bool:
+    return await templates.render(
         "picom.conf",
         "~/.config",
         keep_empty=True,
@@ -511,9 +512,25 @@ async def render_picom_config(**overrides) -> None:
     )
 
 
-async def render_terminalrc(**overrides) -> None:
+async def render_kitty_config(**overrides: Any) -> bool:
     colors = get_wal_colors(**overrides)
-    await templates.render(
+    has_changed = await templates.render(
+        "kitty.conf",
+        "~/.config/kitty",
+        keep_empty=True,
+        comment_start="#",
+        overrides=get_default_vars(**colors),
+    )
+    if has_changed:
+        from libqtile import qtile
+
+        qtile.call_soon(reload_kitty_config)
+    return has_changed
+
+
+async def render_terminalrc(**overrides) -> bool:
+    colors = get_wal_colors(**overrides)
+    return await templates.render(
         "terminalrc",
         "~/.config/xfce4/terminal",
         keep_empty=True,
@@ -558,7 +575,8 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
     hook.fire("custom_reload")
     qtile.call_soon(setup_all_group_icons)
     logger.info("finished reloading config (async)")
-    qtile.call_soon(reload_kitty_config)
+    # qtile.call_soon(reload_kitty_config)
+    await render_kitty_config()
 
 
 def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
@@ -579,7 +597,8 @@ def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
     qtile.cmd_reload_config()
     hook.fire("custom_reload")
     logger.info("finished reloading config (sync)")
-    qtile.call_soon(reload_kitty_config)
+    # qtile.call_soon(reload_kitty_config)
+    qtile.call_soon(render_kitty_config)
 
 
 def sync_reload_qtile(qtile: Qtile) -> None:
@@ -740,8 +759,8 @@ def set_term_supply(window: Window, as_supply: bool = True) -> None:
 def provide_terminal(qtile: Qtile) -> None:
     try:
         window = qtile.groups_map[TERM_GROUP].windows[0]
-    except IndexError as e:
-        logger.warn(e)
+    except IndexError:
+        logger.warn(f"no supply terminals available on group {TERM_GROUP}")
         return
     set_term_supply(window, as_supply=False)
 
@@ -753,13 +772,13 @@ async def spawn_terminal() -> None:
     from libqtile import qtile
 
     if len(qtile.groups_map[TERM_GROUP].windows) < 2:
-        await new_proc("kitty", close_fds=True)
+        await new_proc("kitty", f"--class={TERM_SUPPLY_CLASS}", close_fds=True)
 
 
 @hook.subscribe.client_new
 def send_kitty_to_empty_group(window: Window) -> None:
     if (
-        window.get_wm_class()[1] == "kitty"
+        window.get_wm_class()[1] == TERM_SUPPLY_CLASS
         and get_term_supply_status(window) is TerminalSupportStatus.NOT_INITIALIZED
     ):
         set_term_supply(window, as_supply=True)
@@ -770,8 +789,8 @@ def send_kitty_to_empty_group(window: Window) -> None:
 async def add_more_terminals(group: Group, window: Window) -> None:
     if (
         group.name != TERM_GROUP
-        and window.get_wm_class()[1] == "kitty"
-        and get_term_supply_status(window) is TerminalSupportStatus.IN_USE
+        and window.get_wm_class()[1] == TERM_SUPPLY_CLASS
+        # and get_term_supply_status(window) is TerminalSupportStatus.IN_USE
     ):
         await spawn_terminal()
 

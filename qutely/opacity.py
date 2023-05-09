@@ -1,7 +1,7 @@
 from libqtile import hook
 from libqtile.backend.x11.window import Window
 from libqtile.log_utils import logger
-from qutely.util import is_light_theme
+from qutely.util import is_light_theme, TERM_CLASS, TERM_SUPPLY_CLASS
 
 full_opacities = {
     "class": {
@@ -49,7 +49,8 @@ full_opacities = {
 partial_opacities = {
     "class": {
         "xfce4-terminal": 0.92,
-        "kitty": 0.92,
+        TERM_CLASS: 0.92,
+        TERM_SUPPLY_CLASS: 0.92,
         "awiwi": 0.92,
         "neovide": 0.92,
         "thunderbird": 0.97,

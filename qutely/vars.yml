@@ -44,3 +44,5 @@ picom.conf:
 
 terminalrc:
   bg: "#0d0d00"
+
+kitty.conf: {}

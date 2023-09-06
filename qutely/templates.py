@@ -24,7 +24,6 @@ def get_vars(src, overrides):
     src_vars = vars[src.replace(".j2", "")]
     if overrides:
         src_vars.update(overrides)
-    print(src_vars)
     return src_vars
 
 
@@ -41,13 +40,11 @@ async def render(
     src = src if src.endswith(".j2") else f"{src}.j2"
     if os.path.isdir(dest):
         dest = os.path.join(dest, src.replace(".j2", ""))
-    print(f"templating {src}")
     if os.path.exists(dest):
         with open(dest, "rb") as f:
             old_hash = hashlib.md5(f.read()).hexdigest()
     else:
         old_hash = None
-    print(f"old hash: {old_hash}")
     t = get_template(src)
     src_vars = get_vars(src, overrides)
 
@@ -77,9 +74,7 @@ async def render(
         content = "\n".join(lines)
 
     new_hash = hashlib.md5(content.encode()).hexdigest()
-    print(f"new hash: {new_hash}")
     if not old_hash == new_hash:
-        print(f"writing {src} to {dest}")
         with open(dest, "w") as f:
             f.write(content)
         return True

@@ -577,7 +577,7 @@ class LegacySyncProc:
         try:
             subprocess.Popen(proc_args)
         except Exception as e:
-            print(f"error while executing backgrounded command {[proc_args]}: {e.message}")
+            print(f"error while executing backgrounded command {[proc_args]}: {e}")
 
     def run(self, *args, timeout=-1):
         proc_args = self.get_args(*args)
@@ -586,7 +586,7 @@ class LegacySyncProc:
         try:
             p = subprocess.run(proc_args, timeout=timeout, text=True, shell=self.shell)
         except subprocess.TimeoutExpired as e:
-            print(f"timeed out while waiting for command {proc_args}: ", e.message)
+            print(f"timeed out while waiting for command {proc_args}: {e}")
             return False
         if not p.returncode:
             return True
@@ -657,6 +657,8 @@ xss_lock = Proc("xss-lock", "-l", "-v", "--", " ".join(screensaver_cmd.args), bg
 shiftred = Proc("shiftred", "load-config")
 start_dunst = Proc("systemctl", "--user", "restart", "dunst")
 resume_dunst = Proc("killall", "-SIGUSR2", "dunst")
+start_compton = Proc("systemctl", "--user", "restart", "compton")
+stop_compton = Proc("systemctl", "--user", "stop", "compton")
 start_picom = Proc("systemctl", "--user", "restart", "picom")
 stop_picom = Proc("systemctl", "--user", "stop", "picom")
 bluetooth = Proc("blueman-applet", bg=True)

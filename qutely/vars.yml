@@ -22,7 +22,7 @@ dunstrc:
       fg: "#ff0000"
       timeout:  0
 
-picom.conf:
+picom.conf: &picom
   menu_opacity: 0.98
   shadow: true
   shadow_radius: 10
@@ -33,7 +33,7 @@ picom.conf:
   fading: true
   fade_in_step: 0.12
   backend: glx
-  # vsync: true
+  vsync: true
   shadow_excludes:
     - name: Notification
     - class: Conkey
@@ -41,6 +41,8 @@ picom.conf:
       op: ?=
     - class: Cairo-clock
     - class: Dunst
+
+compton.conf: *picom
 
 terminalrc:
   bg: "#0d0d00"

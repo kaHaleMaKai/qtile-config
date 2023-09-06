@@ -15,7 +15,7 @@ from libqtile.log_utils import logger
 hook.subscribe.hooks.add("custom_reload")
 from qutely import procs, color, util
 from qutely.procs import Proc
-from qutely.floating_rules import get_floating_rules
+from qutely.floating_rules import get_floating_rules, floating_dimensions
 from qutely.keys import keys, mod_key
 from qutely.opacity import partial_opacities  # NOQA
 
@@ -26,8 +26,8 @@ from qutely.bar import get_bar
 
 NUMBER_OF_TERMINALS = 4
 
-scratchpad = ScratchPad(
-    "scratchpad",
+signal_scratchpad = ScratchPad(
+    "signal_scratchpad",
     [
         DropDown(
             "signal",
@@ -43,8 +43,26 @@ scratchpad = ScratchPad(
     single=True,
 )
 
+zeal_scratchpad = ScratchPad(
+    "zeal_scratchpad",
+    [
+        DropDown(
+            "zeal",
+            ["zeal"],
+            opacity=1,
+            on_focus_lost_hide=True,
+            x=0,
+            y=0,
+            width=1,
+            height=1,
+        ),
+    ],
+    single=True,
+)
+
 groups = util.groups[:]
-groups.append(scratchpad)
+groups.append(signal_scratchpad)
+groups.append(zeal_scratchpad)
 
 matcher = {
     "c": [Match(wm_class="Vivaldi-stable")],
@@ -101,7 +119,7 @@ treetab_settings = {
 
 layouts = [
     layout.Bsp(border_focus=color.BLACK, border_normal=color.BLACK, **layout_settings),
-    layout.MonadTall(ratio=0.68, **layout_settings),
+    layout.MonadTall(ratio=0.72, **layout_settings),
     # layout.MonadWide(**layout_settings),
     # layout.Columns(insert_position=1, **layout_settings),
     # layout.Matrix(insert_position=1, **layout_settings),
@@ -174,7 +192,7 @@ async def autostart_once() -> None:
                 procs.xss_lock,
                 procs.shiftred,
                 procs.start_dunst,
-                procs.start_picom,
+                procs.start_compton,
                 procs.bluetooth,
                 procs.nextcloud_sync,
                 procs.kde_connect,
@@ -191,23 +209,23 @@ async def autostart() -> None:
         ps.extend(
             [
                 util.render_dunstrc(),
-                util.render_picom_config(),
+                util.render_compton_config(),
                 util.render_kitty_config(),
                 util.spawn_terminal(),
             ]
         )
     if util.is_light_theme:
-        ps.append(procs.stop_picom)
+        ps.append(procs.stop_compton)
     else:
-        ps.append(procs.start_picom)
+        ps.append(procs.start_compton)
     await Proc.await_many(*ps)
 
 
-@hook.subscribe.screen_change
-async def screen_change(event):
-    from libqtile import qtile
+# @hook.subscribe.screen_change
+# async def screen_change(event):
+#     from libqtile import qtile
 
-    await util.reload_qtile(qtile)
+#     await util.reload_qtile(qtile)
 
 
 def handle_floating_windows(window: Window) -> None:
@@ -224,8 +242,8 @@ def handle_floating_windows(window: Window) -> None:
     elif role == "InvitationsDialog":
         window.floating = False
 
-    if class_ == "nm-openconnect-auth-dialog":
-        window.width, window.height = 700, 800
+    if dim := floating_dimensions.get(class_):
+        window.width, window.height = dim
         window.cmd_center()
 
 

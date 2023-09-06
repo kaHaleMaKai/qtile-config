@@ -45,6 +45,11 @@ rules = {
     ],
 }
 
+floating_dimensions = {
+    "nm-openconnect-auth-dialog": (700, 800),
+    "arandr": (600, 600),
+}
+
 
 def generate_floating_rules(rules: dict[str, Iterable[str]]) -> Iterable[Match]:
     yield from Floating.default_float_rules

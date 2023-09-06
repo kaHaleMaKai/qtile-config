@@ -26,7 +26,7 @@ from qutely import util, color, procs
 from pathlib import Path
 
 BAR_HEIGHT = 26
-IFACES = ["wlp0s20f3"]
+IFACES = ["wlp0s20f3", "usb0", "eth0"]
 
 PARTITIONS = {
     "/": "M",
@@ -499,6 +499,7 @@ def get_bar(screen_idx: int):
         update_interval=1,
         use_diff=True,
         up_first=False,
+        mouse_callbacks={"Button1": proc_fn("bash", "-c", "nmcli n off && nmcli n on")},
         **settings,
     )
     widgets.append(net_graph)

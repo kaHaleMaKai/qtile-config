@@ -31,6 +31,7 @@ TERM_SUPPLY_CLASS = "kitty-term-supply"
 TERM_CLASS = "kitty"
 TERM_GROUP = ""
 TERM_ATTRIBUTE = "IS_KITTY_SUPPLY"
+NVIM_SERVER_CACHE_DIR = Path("~/.cache/nvim/servers").expanduser()
 
 
 class ScreenDict(TypedDict):
@@ -68,6 +69,7 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
             "default": 0xF120,
             "regexes": {
                 re.compile("^[^@]+@.*:"): 0xF1E6,
+                re.compile("^psql@"): 0xF703,
             },
         },
         "vivaldi-stable": {
@@ -93,6 +95,9 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
         "virtualbox manager": 0xE707,
         "evince": 0xF411,
         "bitwarden": 0xF21B,
+        "wireshark": 0xF739,
+        "zoom": 0xF03D,
+        "arandr": 0xF109,
     },
     "name": {
         "vim": 0xE7C5,
@@ -501,12 +506,32 @@ def get_default_vars(**overrides):
     return default_vars
 
 
+async def reload_nvim_colors(is_light_theme: bool) -> None:
+    servers = [server for server in NVIM_SERVER_CACHE_DIR.iterdir() if server.is_file()]
+    bg = "light" if is_light_theme else "dark"
+    keys = f":silent call ReloadColors({{'theme': '{bg}', 'force': v:true}})<CR>"
+    tasks = [
+        new_proc("nvim", "--server", str(server), "--remote-keys", keys, close_fds=True)
+        for server in servers
+    ]
+    await asyncio.gather(*tasks)
+
+
 async def render_dunstrc(**overrides) -> bool:
     return await templates.render(
         "dunstrc",
         "~/.config/dunst",
         keep_comments=False,
         keep_empty=False,
+        overrides=get_default_vars(**overrides),
+    )
+
+
+async def render_compton_config(**overrides) -> bool:
+    return await templates.render(
+        "compton.conf",
+        "~/.config",
+        keep_empty=True,
         overrides=get_default_vars(**overrides),
     )
 
@@ -585,36 +610,7 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
     logger.info("finished reloading config (async)")
     # qtile.call_soon(reload_kitty_config)
     await render_kitty_config()
-
-
-def sync_reload_qtile_helper(qtile: Qtile, light_theme: bool) -> None:
-    logger.info("reloading config (sync)")
-    path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
-    tmp_file = "/tmp/zsh-export-path"
-    procs.Proc(
-        f"/usr/bin/zsh -c 'source {path_file}'",
-        shell=True,
-        env={"QTILE_EXPORT_PATH": tmp_file},
-        sync=True,
-    ).run()
-    with open(tmp_file, "r") as f:
-        path_env = f.read()
-    if path_env.strip():
-        os.environ["PATH"] = path_env.strip()
-    os.environ[THEME_BG_KEY] = "1" if light_theme else ""
-    qtile.cmd_reload_config()
-    hook.fire("custom_reload")
-    logger.info("finished reloading config (sync)")
-    # qtile.call_soon(reload_kitty_config)
-    qtile.call_soon(render_kitty_config)
-
-
-def sync_reload_qtile(qtile: Qtile) -> None:
-    sync_reload_qtile_helper(qtile, light_theme=False)
-
-
-def sync_reload_qtile_light_theme(qtile: Qtile) -> None:
-    sync_reload_qtile_helper(qtile, light_theme=True)
+    await reload_nvim_colors(light_theme)
 
 
 async def lock_screen(qtile: Qtile) -> None:

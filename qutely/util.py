@@ -98,10 +98,10 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
         "wireshark": 0xF739,
         "zoom": 0xF03D,
         "arandr": 0xF109,
+        "awiwi": 0xE006,  # 0xF02D,  # 0xE2A2,
     },
     "name": {
         "vim": 0xE7C5,
-        "ʻāwīwī": 0xE006,  # 0xF02D,  # 0xE2A2,
         "psql": 0xF703,
         "ipython": 0xE235,  # 0xe73c,
     },

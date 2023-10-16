@@ -47,4 +47,5 @@ compton.conf: *picom
 terminalrc:
   bg: "#0d0d00"
 
-kitty.conf: {}
+kitty.conf:
+  font: "Hack"

@@ -167,8 +167,8 @@ follow_mouse_focus = True
 bring_front_click = False
 cursor_warp = True
 floating_layout = layout.Floating(float_rules=get_floating_rules(), border_width=0)
-auto_fullscreen = True
-reconfigure_screens = True
+auto_fullscreen = False
+reconfigure_screens = False
 auto_minimize = True
 focus_on_window_activation = "smart"
 wmname = "LG3D"

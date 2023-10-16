@@ -1,7 +1,11 @@
 import re
+from typing import Iterable
 from libqtile.config import Match
 from libqtile.layout import Floating
-from typing import Iterable
+from libqtile.backend.x11.window import Window, XWindow
+
+
+ZOOM_PATTERN = re.compile("^join.*action")
 
 rules = {
     "wm_class": [
@@ -45,6 +49,17 @@ rules = {
     ],
 }
 
+
+def identify_floating(window: Window) -> bool:
+    if not (classes := window.get_wm_class()):
+        return
+    cls_name, cls = [c.lower() for c in classes]
+
+    if cls == "zoom":
+        return bool(ZOOM_PATTERN.match(cls_name))
+    return False
+
+
 floating_dimensions = {
     "nm-openconnect-auth-dialog": (700, 800),
     "arandr": (600, 600),
@@ -56,10 +71,6 @@ def generate_floating_rules(rules: dict[str, Iterable[str]]) -> Iterable[Match]:
     for key in ("wm_class", "role"):
         for item in rules[key]:
             yield Match(**{key: item})
-
-    # if "wm_name" in rules:
-    #     for item in rules["wm_name"]:
-    #         yield Match(func=lambda win: win.)
 
 
 def get_floating_rules() -> list[Match]:

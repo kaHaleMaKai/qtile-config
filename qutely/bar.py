@@ -218,7 +218,7 @@ class DotGraph(_GenPollText):
 
 
 def space():
-    return widget.Spacer(length=10, background=background)
+    return widget.Spacer(length=14, background=background)
 
 
 def get_num_procs():
@@ -350,7 +350,7 @@ def get_bar(screen_idx: int):
         "urgent_border": color.BRIGHT_RED,
         "disable_drag": True,
         "font": "Hack Patched",
-        "fontsize": 18,
+        "fontsize": 20,
         "markup": True,
     }
     if util.num_screens > 1:
@@ -372,7 +372,11 @@ def get_bar(screen_idx: int):
             )
     else:
         group_box = GroupBox(
-            always_visible_groups=("1", "f"), name="groupbox-0", **settings, **group_settings
+            always_visible_groups=("1", "f"),
+            name="groupbox-0",
+            padding_x=10,
+            **settings,
+            **group_settings,
         )
     widgets.append(group_box)
 
@@ -423,7 +427,7 @@ def get_bar(screen_idx: int):
         widgets.append(kbd)
 
         # widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
-        widgets.append(widget.Systray(icon_size=18, padding=8, **settings))
+        widgets.append(widget.Systray(icon_size=18, padding=12, **settings))
         for partition, unit in PARTITIONS.items():
             df = widget.DF(
                 visible_on_warn=True,

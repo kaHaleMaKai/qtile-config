@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import subprocess
 import asyncio
@@ -39,11 +41,16 @@ class Dunstifier:
         id: MaybeInt = None,
         timeout: MaybeNumber = None,
         replace: bool = True,
+        *args: str,
     ) -> None:
         self.id = id or randint(1_000_000, 10_000_000)
         self.name = name
         self.timeout = timeout
         self.replace = replace
+        self.args = args
+
+    def clone(self, *args: str) -> Dunstifier:
+        return self.__class__(self.name, self.id, self.timeout, self.replace, *args)
 
     async def debug(
         self,
@@ -70,6 +77,8 @@ class Dunstifier:
         timeout: MaybeNumber = None,
         replace: Optional[bool] = None,
     ) -> None:
+        if self.args:
+            msg = msg + "\n" + str(self.args)
         await self.send(msg, self.high_urgency, title, timeout, replace)
 
     async def send(
@@ -176,7 +185,8 @@ class Proc(ABC):
         sync: bool = False,
     ):
         if not dunstifier:
-            dunstifier = Dunstifier(replace=False, name=error_title) if error_title else None
+            # dunstifier = Dunstifier(replace=False, name=error_title) if error_title else None
+            dunstifier = cls.default_dunstifier.clone(*args)
         if bg:
             return BackgroundProc(*args, shell=shell, dunstifier=dunstifier, env=env)
         elif not sync:
@@ -269,7 +279,7 @@ class BackgroundProc(Proc):
         self._is_running = False
         self._err: MaybeStr = None
         self._rc = 0
-        self.dunstifier = dunstifier or Proc.default_dunstifier
+        self.dunstifier = dunstifier or Proc.default_dunstifier.clone(*args)
         self.shell = shell
         self.proc: Optional[subprocess.Popen[str]] = None
         self.env = env
@@ -327,7 +337,8 @@ class AsyncProc(Proc):
         self.args = args
         self.proc: Optional[Process] = None
         self._timeout = timeout
-        self.dunstifier = dunstifier or self.default_dunstifier
+
+        self.dunstifier = dunstifier or self.default_dunstifier.clone(*args)
         self.shell = shell
         self.env = env
 
@@ -431,7 +442,7 @@ class SyncProc(Proc):
         self.args = args
         self.proc: Optional[Process] = None
         self._timeout = timeout
-        self.dunstifier = dunstifier or self.default_dunstifier
+        self.dunstifier = dunstifier or self.default_dunstifier.clone(*args)
         self.shell = shell
         self.env = env
         self._is_running = False

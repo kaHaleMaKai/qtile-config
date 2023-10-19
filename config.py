@@ -114,7 +114,7 @@ treetab_settings = {
     "section_bottom": 0,
     "section_padding": 0,
     "section_left": 0,
-    "opacity": partial_opacities["class"]["kitty"],
+    "opacity": partial_opacities["class"][util.TERM_CLASS],
 }
 
 layouts = [

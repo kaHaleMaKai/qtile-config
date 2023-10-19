@@ -7,19 +7,19 @@ dunstrc:
   icon_path: /usr/share/icons/HighContrast/16x16
   urgency:
     low:
-      bg: "#1b1b1b"
-      fg: "#585858"
-      frame: "#242424"
+      bg: "#323200"
+      fg: "#e0e000"
+      frame: "#a0a000"
       timeout: 5
     normal:
-      bg: "#282828"
-      fg: "#808080"
-      frame: "#303030"
+      bg: "#301000"
+      frame: "#e37000"
+      fg: "#ff8000"
       timeout: 30
     critical:
-      bg: "#800000"
+      bg: "#600000"
       frame: "#980000"
-      fg: "#ff0000"
+      fg: "#ff6060"
       timeout:  0
 
 picom.conf: &picom
@@ -31,7 +31,7 @@ picom.conf: &picom
   # inactive_opacity: 0.9;
   # blur_kernel: 11x11gaussian
   fading: true
-  fade_in_step: 0.12
+  fade_in_step: 0.06
   backend: glx
   vsync: true
   shadow_excludes:
@@ -41,6 +41,8 @@ picom.conf: &picom
       op: ?=
     - class: Cairo-clock
     - class: Dunst
+
+
 
 compton.conf: *picom
 

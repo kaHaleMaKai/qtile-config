@@ -31,6 +31,8 @@ full_opacities = {
         "kazam",
         "vivaldi-stable",
         "scribus",
+        # TERM_CLASS,
+        # TERM_SUPPLY_CLASS,
     },
     "role": {
         "gtkfilechooserdialog",
@@ -48,9 +50,9 @@ full_opacities = {
 
 partial_opacities = {
     "class": {
-        "xfce4-terminal": 0.92,
-        TERM_CLASS: 0.92,
-        TERM_SUPPLY_CLASS: 0.92,
+        "xfce4-terminal": 1,  # 0.92,
+        TERM_CLASS: 1,  # 0.92,
+        TERM_SUPPLY_CLASS: 1,  # 0.92,
         "awiwi": 0.92,
         "neovide": 0.92,
         "thunderbird": 0.97,

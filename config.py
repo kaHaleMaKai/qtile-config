@@ -74,7 +74,7 @@ matcher = {
     ],
     "f": [
         Match(wm_class=re.compile(r".*Firefox.*")),
-        Match(title=re.compile(r".*Firefox Developer Edition\s*")),
+        Match(title=re.compile(r".*Firefox.*")),
     ],
 }
 for g, match in matcher.items():

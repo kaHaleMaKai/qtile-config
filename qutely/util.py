@@ -56,7 +56,7 @@ def on_reload(f: Any) -> Any:
 group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], int]]]] = {
     "role": {},
     "class": {
-        "firefox-aurora": {
+        "firefox": {
             "regexes": {
                 re.compile(r"\(Meeting\).*Microsoft Teams.*Firefox"): 0xF447,
                 re.compile(r"^https://teams.microsoft.com.*Microsoft Teams.*Firefox"): 0xF7C8,
@@ -106,6 +106,8 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
         "ipython": 0xE235,  # 0xe73c,
     },
 }
+
+group_labels["class"]["firefox-nightly"] = group_labels["class"]["firefox"]
 group_labels["class"][TERM_SUPPLY_CLASS] = group_labels["class"][TERM_CLASS]
 
 THEME_BG_KEY = "QTILE_LIGHT_THEME"

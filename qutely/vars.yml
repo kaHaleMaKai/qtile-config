@@ -5,6 +5,9 @@ dunstrc:
     small: 9
     large: 11
   icon_path: /usr/share/icons/HighContrast/16x16
+  width: [120, 250]
+  height: 400
+  offset: [20, 50]
   urgency:
     low:
       bg: "#323200"

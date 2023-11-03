@@ -268,7 +268,7 @@ class BorgBackupWidget(CheckAndWarnWidget):
             return CheckState.WARN
         with self.cache_file.open("r") as f:
             text = f.read().strip()
-        if text in ("in-progress", "pruning"):
+        if text in ("in-progress", "pruning", "compaction"):
             return CheckState.IN_PROGRESS
         elif text == "success":
             return CheckState.OK

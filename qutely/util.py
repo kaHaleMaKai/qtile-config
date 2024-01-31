@@ -526,42 +526,37 @@ async def reload_nvim_colors(is_light_theme: bool) -> None:
     await asyncio.gather(*tasks)
 
 
-async def render_dunstrc(**overrides) -> bool:
+async def render_dunstrc() -> bool:
     return await templates.render(
         "dunstrc",
         "~/.config/dunst",
         keep_comments=False,
         keep_empty=False,
-        overrides=get_default_vars(**overrides),
     )
 
 
-async def render_compton_config(**overrides) -> bool:
+async def render_compton_config() -> bool:
     return await templates.render(
         "compton.conf",
         "~/.config",
         keep_empty=True,
-        overrides=get_default_vars(**overrides),
     )
 
 
-async def render_picom_config(**overrides) -> bool:
+async def render_picom_config() -> bool:
     return await templates.render(
         "picom.conf",
         "~/.config",
         keep_empty=True,
-        overrides=get_default_vars(**overrides),
     )
 
 
-async def render_kitty_config(**overrides: Any) -> bool:
-    colors = get_wal_colors(**overrides)
+async def render_kitty_config() -> bool:
     has_changed = await templates.render(
         "kitty.conf",
         "~/.config/kitty",
         keep_empty=True,
         comment_start="#",
-        overrides=get_default_vars(**colors),
     )
     if has_changed:
         from libqtile import qtile
@@ -570,13 +565,11 @@ async def render_kitty_config(**overrides: Any) -> bool:
     return has_changed
 
 
-async def render_terminalrc(**overrides) -> bool:
-    colors = get_wal_colors(**overrides)
+async def render_terminalrc() -> bool:
     return await templates.render(
         "terminalrc",
         "~/.config/xfce4/terminal",
         keep_empty=True,
-        overrides=get_default_vars(**colors),
     )
 
 

@@ -4,7 +4,7 @@
 #                                                          #
 ############################################################
 
-shadow = {{ shadow }};
+shadow = {{ "true" if shadow else "false" }};
 shadow-radius = {{ shadow_radius }};
 shadow-offset-x = {{ shadow_offset }};
 shadow-offset-y = {{ shadow_offset }};
@@ -37,7 +37,7 @@ inactive-opacity-override = false;
 inactive-dim = 0.2;
 blur-kern = "{{ blur_kernel }}";
 blur-background-exclude = [ "window_type = 'dock'", "window_type = 'desktop'" ];
-fading = {{ fading }};
+fading = {{ "true" if fading else "false" }};
 fade-in-step = {{ fade_in_step }};
 fade-out-step = {{ fade_out_step|default(fade_in_step) }};
 fade-exclude = [ ];
@@ -47,7 +47,7 @@ mark-ovredir-focused = true;
 detect-rounded-corners = true;
 detect-client-opacity = true;
 refresh-rate = 0;
-vsync = {{ vsync|default('false') }};
+vsync = {{ "true" if vsync else "false" }};
 dbe = false;
 focus-exclude = [ "class_g = 'Cairo-clock'" ];
 detect-transient = true;

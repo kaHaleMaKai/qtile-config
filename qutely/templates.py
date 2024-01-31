@@ -6,6 +6,7 @@ from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
 from libqtile.log_utils import logger
+from qutely.vars import get_config
 
 cur_dir = Path(__file__).absolute().parent
 
@@ -16,15 +17,6 @@ def get_template(file):
     return Environment(loader=loader, line_comment_prefix="#j2:", enable_async=True).get_template(
         file
     )
-
-
-def get_vars(src, overrides):
-    with (cur_dir / "vars.yml").open("r") as f:
-        vars = yaml.load(f, Loader=yaml.BaseLoader)
-    src_vars = vars[src.replace(".j2", "")]
-    if overrides:
-        src_vars.update(overrides)
-    return src_vars
 
 
 async def render(
@@ -46,7 +38,8 @@ async def render(
     else:
         old_hash = None
     t = get_template(src)
-    src_vars = get_vars(src, overrides)
+
+    src_vars = get_config(src)
 
     _content = await t.render_async(**src_vars)
     if keep_comments and keep_empty:

@@ -2,7 +2,7 @@
 dunstrc:
   font: Hack
   fontsize:
-    small: 9
+    small: 8
     large: 11
   icon_path: /usr/share/icons/HighContrast/16x16
   width: [120, 250]
@@ -43,6 +43,8 @@ picom.conf: &picom
     - class: Notify-osd
       op: ?=
     - class: Cairo-clock
+    - var: "QTILE_INTERNAL:32c"
+      value: 1
     - class: Dunst
 
 
@@ -53,4 +55,6 @@ terminalrc:
   bg: "#0d0d00"
 
 kitty.conf:
-  font: "Hack"
+  font:
+    family: Hack
+    size: 8

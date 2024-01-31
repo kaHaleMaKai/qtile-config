@@ -65,7 +65,7 @@ groups.append(signal_scratchpad)
 groups.append(zeal_scratchpad)
 
 matcher = {
-    "c": [Match(wm_class="Vivaldi-stable")],
+    "c": [Match(wm_class="Vivaldi-stable"), Match(wm_class="teams-for-linux")],
     "e": [
         Match(wm_class="Evolution"),
         Match(wm_class="Thunderbird"),
@@ -181,6 +181,7 @@ async def autostart_once() -> None:
         procs.unclutter,
         procs.network_manager,
         procs.xfce4_power_manager,
+        procs.opensnitch,
         # procs.activate_touchpad,
     ]
     if not util.in_debug_mode:
@@ -192,7 +193,7 @@ async def autostart_once() -> None:
                 procs.xss_lock,
                 procs.shiftred,
                 procs.start_dunst,
-                procs.start_compton,
+                procs.start_picom,
                 procs.bluetooth,
                 procs.nextcloud_sync,
                 procs.kde_connect,
@@ -209,15 +210,15 @@ async def autostart() -> None:
         ps.extend(
             [
                 util.render_dunstrc(),
-                util.render_compton_config(),
+                util.render_picom_config(),
                 util.render_kitty_config(),
                 util.spawn_terminal(),
             ]
         )
     if util.is_light_theme:
-        ps.append(procs.stop_compton)
+        ps.append(procs.stop_picom)
     else:
-        ps.append(procs.start_compton)
+        ps.append(procs.start_picom)
     await Proc.await_many(*ps)
 
 

@@ -32,6 +32,7 @@ TERM_CLASS = "kitty"
 TERM_GROUP = ""
 TERM_ATTRIBUTE = "IS_KITTY_SUPPLY"
 NVIM_SERVER_CACHE_DIR = Path("~/.cache/nvim/servers").expanduser()
+LAPTOP_SCREEN = "eDP1"
 
 
 class ScreenDict(TypedDict):
@@ -73,6 +74,12 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
             },
         },
         "vivaldi-stable": {
+            "regexes": {
+                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xF447,
+            },
+            "default": 0xF7C8,  # 0xe744,  # 0xf57d,
+        },
+        "teams-for-linux": {
             "regexes": {
                 re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xF447,
             },
@@ -617,6 +624,10 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
 
 async def lock_screen(qtile: Qtile) -> None:
     await procs.screensaver_cmd.run()
+
+
+async def suspend(qtile: Qtile) -> None:
+    await procs.suspend.run()
 
 
 def reload_kitty_config() -> None:

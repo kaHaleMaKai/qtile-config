@@ -6,7 +6,7 @@
 ##: individual font faces and even specify special fonts for particular
 ##: characters.
 
-font_family      {{ font }}
+font_family      {{ font.family }}
 bold_font        auto
 italic_font      auto
 bold_italic_font auto
@@ -22,7 +22,7 @@ bold_italic_font auto
 ##:     italic_font      Operator Mono Book Italic
 ##:     bold_italic_font Operator Mono Medium Italic
 
-font_size 9.0
+font_size {{ font.size }}
 
 ##: Font size (in pts)
 
@@ -137,11 +137,6 @@ url_style curly
 ##: The color and style for highlighting URLs on mouse-over. url_style
 ##: can be one of: none, single, double, curly
 
-open_url_modifiers kitty_mod
-
-##: The modifier keys to press when clicking with the mouse on URLs to
-##: open the URL
-
 open_url_with default
 
 ##: The program with which to open URLs that are clicked on. The
@@ -156,11 +151,6 @@ copy_on_select no
 ##: primary selections. Note that this is a security risk, as all
 ##: programs, including websites open in your browser can read the
 ##: contents of the clipboard.
-
-rectangle_select_modifiers ctrl+alt
-
-##: The modifiers to use rectangular selection (i.e. to select text in
-##: a rectangular block with the mouse)
 
 ##select_by_word_characters :@-./_~?&=%+#
 select_by_word_characters  -A-Za-z0-9,./?%&#:_=+@~[]{}()

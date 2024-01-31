@@ -668,6 +668,7 @@ xss_lock = Proc("xss-lock", "-l", "-v", "--", " ".join(screensaver_cmd.args), bg
 shiftred = Proc("shiftred", "load-config")
 start_dunst = Proc("systemctl", "--user", "restart", "dunst")
 resume_dunst = Proc("killall", "-SIGUSR2", "dunst")
+suspend = Proc("systemctl", "suspend")
 start_compton = Proc("systemctl", "--user", "restart", "compton")
 stop_compton = Proc("systemctl", "--user", "stop", "compton")
 start_picom = Proc("systemctl", "--user", "restart", "picom")
@@ -679,6 +680,7 @@ setxkbmap = Proc("setxkbmap", "de", "deadacute", shell=True)
 fakecam = Proc("fakecam", "start")
 pulseaudio = Proc("pulseaudio", "-D")
 light = Proc("light")
+opensnitch = Proc("opensnitch-ui", bg=True)
 activate_touchpad = Proc(
     "xinput",
     "set-prop",

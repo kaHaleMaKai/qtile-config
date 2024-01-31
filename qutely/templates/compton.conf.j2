@@ -12,22 +12,22 @@ shadow-opacity = {{ shadow_opacity }};
 shadow-red = 0.0;
 shadow-green = 0.0;
 shadow-blue = 0.0;
-shadow-exclude = [ {% for item in shadow_excludes -%}
-  {%- if "class" in item -%}
-  {%- set type = "class_g" -%}
-  {%- set value = item.class -%}
-  {%- elif "class_0" in item -%}
-  {%- set type = "class_i" -%}
-  {%- set value = item.class_i -%}
-  {%- elif "name" in item -%}
-  {%- set type = "name" -%}
-  {%- set value = item.name -%}
-  {%- elif "role" in item -%}
-  {%- set type = "role" -%}
-  {%- set value = item.role -%}
-  {%- endif -%}
-  "{{ type  }} {{ item.op|default('=') }} '{{ value }}'"{{ ', ' if not loop.last else '' }}
-{%- endfor %} ];
+shadow-exclude = [
+{% for item in shadow_excludes %}
+  {%- set op = item.op|default('=') -%}
+  {% if "class" in item -%}
+    "class_g {{ op }} '{{ item.class }}'"
+  {% elif "class_0" in item -%}
+    "class_0 {{ op }} '{{ item.class_0 }}'"
+  {% elif "name" in item -%}
+    "name {{ op }} '{{ item.name }}'"
+  {% elif "role" in item -%}
+    "role {{ op }} '{{ item.role }}'"
+  {% elif "var" in item -%}
+    "{{ item.var }} {{ op }} {{ item.value }}"
+  {% endif %}
+  {{- ', ' if not loop.last else '' -}}
+{% endfor %} ];
 shadow-ignore-shaped = false;
 xinerama-shadow-crop = false;
 {%- if inactive_opacity|default(false) %}inactive-opacity = {{ inactive_opactity }}{% endif %}

@@ -18,8 +18,11 @@ from qutely.procs import Proc
 from qutely.floating_rules import get_floating_rules, floating_dimensions
 from qutely.keys import keys, mod_key
 from qutely.opacity import partial_opacities  # NOQA
+from qutely.debug import in_debug_mode
+from qutely.display import is_light_theme, num_screens
 
-if not util.is_light_theme:
+
+if not is_light_theme:
     from qutely.opacity import add_opacity
 from qutely.bar import get_bar
 
@@ -140,7 +143,7 @@ wallpaper = Path("~/.wallpaper").expanduser().absolute()
 
 screens = [
     Screen(top=get_bar(idx), wallpaper=str(wallpaper), wallpaper_mode="stretch")
-    for idx in range(util.num_screens)
+    for idx in range(num_screens)
 ]
 
 # Drag floating layouts.
@@ -184,7 +187,7 @@ async def autostart_once() -> None:
         procs.opensnitch,
         # procs.activate_touchpad,
     ]
-    if not util.in_debug_mode:
+    if not in_debug_mode:
         ps.extend(
             [
                 procs.pulseaudio,
@@ -197,6 +200,7 @@ async def autostart_once() -> None:
                 procs.bluetooth,
                 procs.nextcloud_sync,
                 procs.kde_connect,
+                procs.onedrive_gui,
             ]
         )
     await Proc.await_many(*ps)
@@ -206,7 +210,7 @@ async def autostart_once() -> None:
 async def autostart() -> None:
     logger.info("running startup")
     ps = [procs.resume_dunst]
-    if not util.in_debug_mode:
+    if not in_debug_mode:
         ps.extend(
             [
                 util.render_dunstrc(),
@@ -215,7 +219,7 @@ async def autostart() -> None:
                 util.spawn_terminal(),
             ]
         )
-    if util.is_light_theme:
+    if is_light_theme:
         ps.append(procs.stop_picom)
     else:
         ps.append(procs.start_picom)

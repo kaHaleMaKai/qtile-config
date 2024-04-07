@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from typing import Any
-from qutely.physical import is_only_laptop
-from qutely.util import is_light_theme, in_debug_mode, num_screens, res, get_wal_colors
+from qutely.display import (
+    is_only_laptop,
+    is_light_theme,
+    num_screens,
+    res,
+    get_wal_colors,
+)
+from qutely.debug import in_debug_mode
 
 laptop_screen = "eDP1"
 
@@ -29,7 +35,7 @@ _config = {
         "fading": True,
         "fade_in_step": 0.06,
         "backend": "glx",
-        "vsync": True,
+        "vsync": "drm",
         "shadow_excludes": [
             {"name": "Notification"},
             {"class": "Conkey"},
@@ -83,6 +89,6 @@ def get_defaults() -> dict[str, Any]:
     return default_vars
 
 
-def get_config(key) -> dict[str, Any]:
+def get_config(key: str) -> dict[str, Any]:
     sub_config = _config[key.replace(".j2", "")]
     return sub_config | get_defaults()

@@ -5,19 +5,18 @@ from libqtile.config import EzKey
 from libqtile.command import lazy, _LazyTree
 from libqtile.lazy import LazyCall
 from libqtile.utils import logger
+from qutely.debug import in_debug_mode
 from qutely.util import (
     prev_group,
     next_group,
     spawncmd,
     go_to_screen,
     move_to_screen,
-    in_debug_mode,
     restart_qtile,
     reload_qtile,
     move_window_to_offset_group,
     start_distraction_free_mode,
     stop_distraction_free_mode,
-    is_laptop_connected,
     history_back,
     history_forward,
     lock_screen,

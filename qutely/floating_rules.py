@@ -36,6 +36,7 @@ rules = {
         "Xfce4-power-manager-settings",
         re.compile("^Polkit-gnome-authentication-agent.*"),
         "fontforge",
+        "OneDriveGUI",
     ],
     "wm_name": [
         "pinentry",

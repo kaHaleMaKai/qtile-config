@@ -3,8 +3,6 @@ import sys
 import re
 import math
 from enum import Enum
-import yaml
-import pywal
 from qutely import procs, templates
 import asyncio
 from asyncio.subprocess import create_subprocess_exec as new_proc
@@ -26,6 +24,7 @@ from libqtile.log_utils import logger
 
 # import qtile_mutable_scratch as mut_scratch
 from qutely.color import complement, add_hashtag
+from qutely.display import is_light_theme, num_screens, THEME_BG_KEY
 
 TERM_SUPPLY_CLASS = "kitty-term-supply"
 TERM_CLASS = "kitty"
@@ -117,21 +116,12 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
 group_labels["class"]["firefox-nightly"] = group_labels["class"]["firefox"]
 group_labels["class"][TERM_SUPPLY_CLASS] = group_labels["class"][TERM_CLASS]
 
-THEME_BG_KEY = "QTILE_LIGHT_THEME"
-in_debug_mode = os.environ.get("QTILE_DEBUG_MODE", "off") == "on"
 group_dict = {name: Group(name) for name in "123456789abcdef"}
 groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
 empty_group = Group("")
 groups.append(empty_group)
 # mutscr = mut_scratch.MutableScratch()
 # hook.subscribe.startup_complete(mutscr.qtile_startup)
-laptop_display = "eDP-1"
-light_theme_marker_file = Path("/tmp/qtile-light-theme")
-is_light_theme = os.environ.get(THEME_BG_KEY, "") == "1"
-if is_light_theme:
-    light_theme_marker_file.touch()
-else:
-    light_theme_marker_file.unlink(missing_ok=True)
 
 
 def lazy_coro(f: Awaitable[Any], *args: Any, **kwargs: Any) -> LazyCall:
@@ -140,55 +130,8 @@ def lazy_coro(f: Awaitable[Any], *args: Any, **kwargs: Any) -> LazyCall:
     )
 
 
-def _get_screens_helper(lines: Iterable[str]) -> ScreenDict:
-    d: ScreenDict = {"_primary": "", "screens": {}}
-    for line in lines:
-        if (
-            not line
-            or line.startswith("Screen ")
-            or "disconnected" in line
-            or line.startswith(" ")
-        ):
-            continue
-        is_primary = "primary" in line
-        m = re.match(
-            r"(?P<monitor>\S+)\s+connected\s+(primary\s+)?(?P<width>\d+)x(?P<height>\d+)+(?P<xoffset>\d+)+(?P<yoffset>\d+)",
-            line,
-        )
-        if not m:
-            continue
-            raise ValueError(f"cannot parse line '{line}'")
-        mon = m.group("monitor")
-        data = {name: int(m.group(name)) for name in ("width", "height", "xoffset", "yoffset")}
-        data["is_primary"] = is_primary
-        d["screens"][mon] = data
-        if is_primary:
-            d["_primary"] = mon
-    return d
-
-
-def get_screens() -> ScreenDict:
-    cmd = ["xrandr"]
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
-
-    lines = [line.decode("utf-8") for line in p.communicate()[0].split(b"\n") if line]
-    screens = _get_screens_helper(lines)
-
-    return screens
-
-
-if "config" in sys.modules.keys() or os.environ.get("TEST_QTILE_FROM_CLI"):
-    screens = get_screens()
-    res = [{"width": s["width"], "height": s["height"]} for s in screens["screens"].values()]
-    num_screens = len(screens["screens"])
-
-
-def is_laptop_connected() -> bool:
-    return laptop_display in screens["screens"]
-
-
 class RingBuffer:
-    def __init__(self, size: int, default=None, no_repeat=False):
+    def __init__(self, size: int, default: Any = None, no_repeat: bool = False) -> None:
         self.size = size
         self.buffer = [default] * size
         self.pointer = -1
@@ -196,10 +139,10 @@ class RingBuffer:
         self.nr_of_pops = 0
         self.no_repeat = no_repeat
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.data_length
 
-    def add(self, el):
+    def add(self, el: Any) -> None:
         if self.no_repeat and self.current == el:
             return
         self.data_length = min(self.data_length + 1, self.size)
@@ -208,7 +151,7 @@ class RingBuffer:
             self.current = el
             self.nr_of_pops = 0
 
-    def backward(self):
+    def backward(self) -> Any:
         if self.data_length <= 1:
             return None
         self.data_length -= 1
@@ -217,7 +160,7 @@ class RingBuffer:
         self.nr_of_pops += 1
         return el
 
-    def forward(self):
+    def forward(self) -> Any:
         if not self.nr_of_pops:
             return None
         self.nr_of_pops -= 1
@@ -225,23 +168,23 @@ class RingBuffer:
         return self.current
 
     @property
-    def current(self):
+    def current(self) -> Any:
         return self.buffer[self.pointer]
 
     @current.setter
-    def current(self, el):
+    def current(self, el: Any) -> None:
         self.buffer[self.pointer] = el
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return str(self.buffer)
 
 
 group_history = RingBuffer(100, no_repeat=True)
 
 
-def go_to_group(group):
+def go_to_group(group: Group) -> LazyCall:
     @lazy.function
-    def f(qtile: Qtile):
+    def f(qtile: Qtile) -> None:
         if len(qtile.screens) == 2 and group.name in "abcdef":
             screen = 1
         else:
@@ -255,7 +198,7 @@ def go_to_group(group):
 
 
 def get_group_and_screen_idx(
-    qtile: Qtile, offset: int, skip_invisible=False
+    qtile: Qtile, offset: int, skip_invisible: bool = False
 ) -> tuple[_Group, int]:
     if offset < -1 or offset > 1:
         raise ValueError(f"wrong value supportetd. expected: offset in (-1, 0, 1). got: {offset}")
@@ -325,7 +268,7 @@ def next_group() -> LazyCall:
 
 def prev_group() -> LazyCall:
     @lazy.function
-    def f(qtile):
+    def f(qtile: Qtile) -> None:
         global group_history
         g, s = get_group_and_screen_idx(qtile, -1, skip_invisible=True)
         group_history.add(g)
@@ -337,7 +280,7 @@ def prev_group() -> LazyCall:
 
 def history_back() -> LazyCall:
     @lazy.function
-    def f(qtile: Qtile):
+    def f(qtile: Qtile) -> None:
         group = group_history.backward()
         if not group:
             return
@@ -354,7 +297,7 @@ def history_back() -> LazyCall:
 
 def history_forward() -> LazyCall:
     @lazy.function
-    def f(qtile: Qtile):
+    def f(qtile: Qtile) -> None:
         group = group_history.forward()
         if not group:
             return
@@ -392,7 +335,7 @@ def move_window_to_offset_group(offset: int) -> LazyCall:
         raise ValueError("offset must not be 0")
 
     @lazy.function
-    def f(qtile: Qtile):
+    def f(qtile: Qtile) -> None:
         current_group = qtile.current_group
         next, _ = get_group_and_screen_idx(qtile, offset)
         label = current_group.label
@@ -410,14 +353,14 @@ def move_window_to_offset_group(offset: int) -> LazyCall:
 
 
 @lazy.function
-def spawncmd(qtile: Qtile):
+def spawncmd(qtile: Qtile) -> None:
     screen = qtile.current_screen.index
     command = "zsh -c '%s'"
-    return qtile.cmd_spawncmd(widget=f"prompt-{screen}", command=command)
+    qtile.cmd_spawncmd(widget=f"prompt-{screen}", command=command)
 
 
 @lazy.function
-def grow_right_or_shrink_left(qtile: Qtile):
+def grow_right_or_shrink_left(qtile: Qtile) -> None:
     width = qtile.current_screen.width
     win: Window = qtile.current_window
     right_margin = win.y + win.width
@@ -427,7 +370,7 @@ def grow_right_or_shrink_left(qtile: Qtile):
     # for w in qtile.current_group.windows:
 
 
-def move_to_screen(dest_screen):
+def move_to_screen(dest_screen: str) -> LazyCall:
     if num_screens == 1:
         return lambda *args, **kwargs: None
 
@@ -444,7 +387,7 @@ def move_to_screen(dest_screen):
     return f
 
 
-def go_to_screen(dest_screen):
+def go_to_screen(dest_screen: str) -> LazyCall:
     if num_screens == 1:
         return lambda *args, **kwargs: None
 
@@ -456,63 +399,6 @@ def go_to_screen(dest_screen):
         qtile.cmd_to_screen(dest_screen)
 
     return f
-
-
-def get_wal_colors():
-    yaml_file = os.path.join(pywal.colors.CACHE_DIR, "colors.yml")
-    if not os.path.exists(yaml_file):
-        wallpaper = os.path.expanduser("~/.wallpaper")
-        colors = pywal.colors.get(wallpaper)
-        pywal.export.every(colors)
-    else:
-        with open(yaml_file, "r") as f:
-            colors = yaml.load(f.read(), Loader=yaml.BaseLoader)
-    # all_colors = ["#" + complement(c, 0.4) if 1 < i < 9 else c for i, c in enumerate(colors["colors"].values())]
-    all_colors = colors["colors"].values()
-    return {
-        "colors": all_colors,
-        "bg": colors["special"]["background"],
-        "fg": colors["special"]["foreground"],
-        "cursor": colors["special"]["cursor"],
-    }
-
-
-def get_light_colors() -> dict[str, str | dict[str, str]]:
-    return {
-        "bg": "#fffffe",
-        "fg": "#000001",
-        "colors": [
-            "#000000",
-            "#cd0000",
-            "#00cd00",
-            "#cdcd00",
-            "#0000cd",
-            "#cd00cd",
-            "#00cdcd",
-            "#e5e5e5",
-            "#7f7f7f",
-            "#ff0000",
-            "#00ff00",
-            "#ffff00",
-            "#5c5cff",
-            "#ff00ff",
-            "#00ffff",
-            "#ffffff",
-        ],
-    }
-
-
-def get_default_vars(**overrides):
-    default_vars = {
-        "defaults": {
-            "num_screens": num_screens,
-            "res": res,
-            "in_debug_mode": in_debug_mode,
-        },
-        "wal": get_light_colors() if is_light_theme else get_wal_colors(),
-    }
-    default_vars.update(**overrides)
-    return default_vars
 
 
 async def reload_nvim_colors(is_light_theme: bool) -> None:
@@ -663,8 +549,9 @@ def toggle_sticky_window(qtile: Qtile) -> None:
 def get_sticky_index_and_group(window: Window) -> tuple[int, _Group, bool] | None:
     global sticky_windows
     res = [(i, tup[1], tup[2]) for i, tup in enumerate(sticky_windows) if tup[0] == window]
+    # FIXME None would break at call site
     if not res:
-        return []
+        return None
     return res[0]
 
 
@@ -800,7 +687,7 @@ async def add_more_terminals(group: Group, window: Window) -> None:
     if (
         group.name != TERM_GROUP
         and window.get_wm_class()[1] == TERM_SUPPLY_CLASS
-        # and get_term_supply_status(window) is TerminalSupportStatus.IN_USE
+        # and get_term_supply_status(winoow) is TerminalSupportStatus.IN_USE
     ):
         await spawn_terminal()
 

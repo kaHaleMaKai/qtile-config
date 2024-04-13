@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from libqtile import bar
+from libqtile.command.base import expose_command
 from libqtile.log_utils import logger
 from libqtile.widget import Systray, base
 from util import with_decorations
@@ -151,7 +152,8 @@ class WidgetBox(base._Widget):
 
         self.drawer.draw(offsetx=self.offsetx, offsety=self.offsety, width=self.width)
 
-    def cmd_toggle(self):
+    @expose_command()
+    def toggle(self):
         """Toggle box state"""
         self.box_is_open = not self.box_is_open
         self.toggle_widgets()

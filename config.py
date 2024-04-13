@@ -12,7 +12,6 @@ from typing import List, Callable, cast  # noqa: F401
 from libqtile.log_utils import logger
 
 # custom imports – parts of config
-hook.subscribe.hooks.add("custom_reload")
 from qutely import procs, color, util
 from qutely.procs import Proc
 from qutely.floating_rules import get_floating_rules, floating_dimensions
@@ -243,13 +242,13 @@ def handle_floating_windows(window: Window) -> None:
     if name.startswith("chrome-extension://") and name.endswith(
         " is sharing a window."
     ):
-        window.cmd_enable_floating()
+        window.enable_floating()
     elif role == "InvitationsDialog":
         window.floating = False
 
     if dim := floating_dimensions.get(class_):
         window.width, window.height = dim
-        window.cmd_center()
+        window.center()
 
 
 @hook.subscribe.client_new
@@ -259,7 +258,7 @@ def handle_floating_for_new_clients(window: Window) -> None:
 
     for win in qtile.current_group.windows:
         if win.floating:
-            win.cmd_bring_to_front()
+            win.bring_to_front()
 
 
 @hook.subscribe.client_killed
@@ -268,7 +267,7 @@ def cycle_to_next_client_or_empty_group(window: Window) -> None:
     if len(current_group.windows) > 1 or window not in current_group.windows:
         return
     if len(current_group.windows) <= 1:
-        current_group.cmd_set_label(None)
+        current_group.set_label(None)
     if current_group.name in ("1", "f"):
         return
     qtile = window.qtile
@@ -277,8 +276,8 @@ def cycle_to_next_client_or_empty_group(window: Window) -> None:
         g, s = qtile.groups_map["1"], 0
     util.group_history.backward()
     util.group_history.add(g)
-    qtile.cmd_to_screen(s)
-    g.cmd_toscreen()
+    qtile.to_screen(s)
+    g.toscreen()
 
 
 @hook.subscribe.setgroup
@@ -289,7 +288,7 @@ def move_sticky_windows():
         w.togroup(qtile.current_group.name)
     window: Window | None = qtile.current_window
     if window:
-        window.cmd_focus()
+        window.focus()
 
 
 @hook.subscribe.client_name_updated
@@ -299,12 +298,11 @@ def set_group_icon(window: Window | None) -> None:
     if window is None:
         from libqtile import qtile
 
-        qtile.current_group.cmd_set_label(None)
+        qtile.current_group.set_label(None)
     else:
         util.set_group_label_from_window_class(window)
 
 
-setup_all_group_icons = hook.subscribe._subscribe(
-    "custom_reload",
-    hook.subscribe.startup_complete(hook.subscribe.restart(util.setup_all_group_icons)),
-)
+# @hook.subscribe.user("custom_reload")
+# def setup_all_group_icons() -> None:
+#     hook.subscribe.startup_complete(hook.subscribe.restart(util.setup_all_group_icons))

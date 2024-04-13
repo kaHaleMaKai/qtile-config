@@ -4,6 +4,7 @@ import subprocess as sub
 from enum import IntEnum
 from typing import Any, Callable, Optional, Union, cast
 
+from libqtile.command.base import expose_command
 from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL  # type: ignore[import]
 
 from qutely.widgets.lib.notifier import Notifier
@@ -75,7 +76,8 @@ class CheckAndWarnWidget(ThreadPoolText):  # type: ignore[misc]
     def check(self) -> CheckState:
         return CheckState.WARN
 
-    def cmd_reset(self) -> None:
+    @expose_command()
+    def reset(self) -> None:
         pass
 
     def run(self) -> None:
@@ -98,7 +100,8 @@ class CheckAndWarnWidget(ThreadPoolText):  # type: ignore[misc]
         else:
             return self.span(self.error_text, self.error_color)
 
-    def cmd_run(self) -> None:
+    @expose_command()
+    def run(self) -> None:
         if self.check().is_action_required():
             try:
                 self.run()

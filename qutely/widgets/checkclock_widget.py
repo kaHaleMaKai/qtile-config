@@ -5,6 +5,7 @@ import datetime
 from typing import Generator, List, Any, Union
 from qutely.procs import _dunstify
 from pathlib import Path
+from libqtile.command.base import expose_command
 from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL
 from libqtile.widget.textbox import TextBox
 from qutely.widgets.checkclock import (
@@ -89,7 +90,8 @@ class CheckclockWidget(ThreadPoolText):
         hours = rem // 60
         return datetime.time(hours, minutes, seconds).strftime(self.time_format).strip()
 
-    def cmd_toggle_paused(self) -> None:
+    @expose_command()
+    def toggle_paused(self) -> None:
         self.checkclock.toggle_paused()
         value = self.poll(tick=not self.checkclock.paused)
         if self.pause_function:
@@ -159,7 +161,8 @@ class CheckclockWidget(ThreadPoolText):
         msg.append("</span>")
         return "".join(msg)
 
-    def cmd_show_schedule(self, num_weeks: Union[str, int] = 0) -> None:
+    @expose_command()
+    def show_schedule(self, num_weeks: Union[str, int] = 0) -> None:
         total_duration: List[int] = []
         monday = self.get_monday() - datetime.timedelta(days=int(num_weeks) * 7)
         num_days = datetime.date.today() - monday

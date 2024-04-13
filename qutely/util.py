@@ -46,7 +46,7 @@ class TerminalSupportStatus(Enum):
 
 
 def on_reload(f: Any) -> Any:
-    return hook.subscribe._subscribe("custom_reload", f)
+    return hook.subscribe.user("custom_reload", f)
 
 
 # vim: 0xe7c5 or 0xe62b
@@ -191,8 +191,8 @@ def go_to_group(group: Group) -> LazyCall:
             screen = 0
         if group.name:
             group_history.add(group)
-        qtile.cmd_to_screen(screen)
-        qtile.groups_map[group.name].cmd_toscreen()
+        qtile.to_screen(screen)
+        qtile.groups_map[group.name].toscreen()
 
     return f
 
@@ -260,8 +260,8 @@ def next_group() -> LazyCall:
         global group_history
         g, s = get_group_and_screen_idx(qtile, +1, skip_invisible=True)
         group_history.add(g)
-        qtile.cmd_to_screen(s)
-        g.cmd_toscreen()
+        qtile.to_screen(s)
+        g.toscreen()
 
     return f
 
@@ -272,8 +272,8 @@ def prev_group() -> LazyCall:
         global group_history
         g, s = get_group_and_screen_idx(qtile, -1, skip_invisible=True)
         group_history.add(g)
-        qtile.cmd_to_screen(s)
-        g.cmd_toscreen()
+        qtile.to_screen(s)
+        g.toscreen()
 
     return f
 
@@ -289,8 +289,8 @@ def history_back() -> LazyCall:
             screen = 1
         else:
             screen = 0
-        qtile.cmd_to_screen(screen)
-        qtile.groups_map[group.name].cmd_toscreen()
+        qtile.to_screen(screen)
+        qtile.groups_map[group.name].toscreen()
 
     return f
 
@@ -306,8 +306,8 @@ def history_forward() -> LazyCall:
             screen = 1
         else:
             screen = 0
-        qtile.cmd_to_screen(screen)
-        qtile.groups_map[group.name].cmd_toscreen()
+        qtile.to_screen(screen)
+        qtile.groups_map[group.name].toscreen()
 
     return f
 
@@ -321,11 +321,11 @@ def move_window_to_group(name: str) -> LazyCall:
         window.togroup(name)
 
         if not qtile.current_group.current_window:
-            qtile.current_group.cmd_set_label(None)
+            qtile.current_group.set_label(None)
         else:
             set_group_label_from_window_class(window)
         dest_group = qtile.groups_map[name]
-        dest_group.cmd_set_label(label)
+        dest_group.set_label(label)
 
     return f
 
@@ -343,11 +343,11 @@ def move_window_to_offset_group(offset: int) -> LazyCall:
         window.togroup(next.name)
 
         if not current_group.current_window:
-            current_group.cmd_set_label(None)
+            current_group.set_label(None)
         else:
             set_group_label_from_window_class(window)
 
-        next.cmd_set_label(label)
+        next.set_label(label)
 
     return f
 
@@ -382,7 +382,7 @@ def move_to_screen(dest_screen: str) -> LazyCall:
         other_screen = qtile.screens[dest_screen]
         g = other_screen.group.name
         qtile.current_window.togroup(g)
-        qtile.cmd_to_screen(dest_screen)
+        qtile.to_screen(dest_screen)
 
     return f
 
@@ -396,7 +396,7 @@ def go_to_screen(dest_screen: str) -> LazyCall:
         idx = qtile.current_screen.index
         if dest_screen == idx:
             return
-        qtile.cmd_to_screen(dest_screen)
+        qtile.to_screen(dest_screen)
 
     return f
 
@@ -492,8 +492,8 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
     os.environ[THEME_BG_KEY] = "1" if light_theme else ""
-    qtile.cmd_reload_config()
-    hook.fire("custom_reload")
+    qtile.reload_config()
+    hook.fire("user_custom_reload")
     qtile.call_soon(setup_all_group_icons)
     logger.info("finished reloading config (async)")
     # qtile.call_soon(reload_kitty_config)
@@ -565,7 +565,7 @@ def set_group_label_from_window_class(window: Window) -> None:
     if not group or not group.name:
         return
     if isinstance(group, ScratchPad):
-        group.cmd_set_label(None)
+        group.set_label(None)
         return
 
     if not ch:
@@ -596,7 +596,7 @@ def set_group_label_from_window_class(window: Window) -> None:
         msg = f"missing label for window name={window.name!r}, role={window.get_wm_role()!r}, class={window.get_wm_class()!r}"
         logger.warn(msg)
     label = chr(ch) if ch else None
-    group.cmd_set_label(label)
+    group.set_label(label)
 
 
 def setup_all_group_icons() -> None:
@@ -609,7 +609,7 @@ def setup_all_group_icons() -> None:
         if group.current_window:
             set_group_label_from_window_class(group.current_window)
         else:
-            group.cmd_set_label(None)
+            group.set_label(None)
 
 
 class KbdBacklight:
@@ -700,6 +700,6 @@ def hide_empty_group(name: str) -> None:
         qtile.groups_map[""].set_screen(None)
 
 
-@on_reload
+@hook.subscribe.user("custom_reload")
 async def init_more_widgets() -> None:
     await kbd_backlight.configure()

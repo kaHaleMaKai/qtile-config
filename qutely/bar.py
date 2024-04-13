@@ -5,6 +5,7 @@ import psutil
 import sqlite3
 from typing import Optional, Any, TYPE_CHECKING, Callable
 from libqtile import bar
+from libqtile.command.base import expose_command
 
 if TYPE_CHECKING:
     from libqtile import widget
@@ -280,7 +281,8 @@ class BorgBackupWidget(CheckAndWarnWidget):
         procs._borg_backup()
         self.update(text=self.poll(state=CheckState.IN_PROGRESS))
 
-    def cmd_reset(self) -> None:
+    @expose_command()
+    def reset(self) -> None:
         if self.cache_file.exists():
             self.cache_file.unlink()
 

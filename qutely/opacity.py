@@ -31,8 +31,11 @@ full_opacities = {
         "kazam",
         "vivaldi-stable",
         "scribus",
-        # TERM_CLASS,
-        # TERM_SUPPLY_CLASS,
+        "firefox",
+        "firefox-nightly",
+        "teams-for-linux",
+        TERM_CLASS,
+        TERM_SUPPLY_CLASS,
     },
     "role": {
         "gtkfilechooserdialog",

@@ -189,7 +189,7 @@ keys = KeyList(
         "M-<F12>": stop_distraction_free_mode,
         "M-p": history_back,
         "M-S-p": history_forward,
-        "M-<Return>": provide_terminal,
+        "M-<Return>": provide_terminal,  # "st"
         "M-<minus>": "xdotool key Menu",
         "M-S-<Left>": "shiftred r-",
         "M-S-<Right>": "shiftred r+",
@@ -214,6 +214,7 @@ keys = KeyList(
         "M-C-s": "kazam",
         "M-C-p": lock_screen,
         "M-C-S-p": suspend,
+        "M-C-A-p": "reconfigure-and-hibernate",
         "M-<F1>": "configure-screens laptop",
         "M-<F2>": "configure-screens home",
         "M-<F3>": "configure-screens work",

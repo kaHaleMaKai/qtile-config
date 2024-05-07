@@ -170,7 +170,7 @@ bring_front_click = False
 cursor_warp = True
 floating_layout = layout.Floating(float_rules=get_floating_rules(), border_width=0)
 auto_fullscreen = False
-reconfigure_screens = False
+reconfigure_screens = True
 auto_minimize = True
 focus_on_window_activation = "smart"
 wmname = "LG3D"
@@ -180,28 +180,8 @@ wmname = "LG3D"
 async def autostart_once() -> None:
     logger.info("running startup_once")
     ps = [
-        procs.unclutter,
-        procs.network_manager,
-        procs.xfce4_power_manager,
-        procs.opensnitch,
-        # procs.activate_touchpad,
+        procs.start_custom_session,
     ]
-    if not in_debug_mode:
-        ps.extend(
-            [
-                procs.pulseaudio,
-                procs.screensaver,
-                procs.polkit_agent,
-                procs.xss_lock,
-                procs.shiftred,
-                procs.start_dunst,
-                procs.start_picom,
-                procs.bluetooth,
-                procs.nextcloud_sync,
-                procs.kde_connect,
-                procs.onedrive_gui,
-            ]
-        )
     await Proc.await_many(*ps)
 
 
@@ -213,15 +193,15 @@ async def autostart() -> None:
         ps.extend(
             [
                 util.render_dunstrc(),
-                util.render_picom_config(),
-                util.render_kitty_config(),
+                # util.render_picom_config(),
+                # util.render_kitty_config(),
                 util.spawn_terminal(),
             ]
         )
-    if is_light_theme:
-        ps.append(procs.stop_picom)
-    else:
-        ps.append(procs.start_picom)
+    # if is_light_theme:
+    #     ps.append(procs.stop_picom)
+    # else:
+    #     ps.append(procs.start_picom)
     await Proc.await_many(*ps)
 
 

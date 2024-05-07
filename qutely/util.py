@@ -26,10 +26,10 @@ from libqtile.log_utils import logger
 from qutely.color import complement, add_hashtag
 from qutely.display import is_light_theme, num_screens, THEME_BG_KEY
 
-TERM_SUPPLY_CLASS = "kitty-term-supply"
-TERM_CLASS = "kitty"
+TERM_SUPPLY_CLASS = "st-term-supply"
+TERM_CLASS = "xterm-256color"
 TERM_GROUP = ""
-TERM_ATTRIBUTE = "IS_KITTY_SUPPLY"
+TERM_ATTRIBUTE = "IS_ST_SUPPLY"
 NVIM_SERVER_CACHE_DIR = Path("~/.cache/nvim/servers").expanduser()
 LAPTOP_SCREEN = "eDP1"
 
@@ -649,7 +649,7 @@ def get_term_supply_status(window: Window) -> TerminalSupportStatus:
 
 
 def set_term_supply(window: Window, as_supply: bool = True) -> None:
-    window.window.set_property(TERM_ATTRIBUTE, 1 if as_supply else 0, "CARDINAL", 32)
+    window.window.set_property(TERM_ATTRIBUTE, int(as_supply), "CARDINAL", 32)
 
 
 @lazy.function
@@ -669,11 +669,11 @@ async def spawn_terminal() -> None:
     from libqtile import qtile
 
     if len(qtile.groups_map[TERM_GROUP].windows) < 2:
-        await new_proc("kitty", f"--class={TERM_SUPPLY_CLASS}", close_fds=True)
+        await new_proc("st", "-c", TERM_SUPPLY_CLASS, "-A", "0.94", close_fds=True)
 
 
 @hook.subscribe.client_new
-def send_kitty_to_empty_group(window: Window) -> None:
+def send_st_to_empty_group(window: Window) -> None:
     if (
         window.get_wm_class()[1] == TERM_SUPPLY_CLASS
         and get_term_supply_status(window) is TerminalSupportStatus.NOT_INITIALIZED

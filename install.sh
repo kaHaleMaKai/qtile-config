@@ -11,7 +11,7 @@ qtile_extras_dir="${HOME}/github/elParaguayo/qtile-extras"
 
 pip-install() {
   pushd "$cur_dir" >/dev/null 2>&1
-  pip install -c constraints.txt "$@"
+  uv pip install -c constraints.txt "$@"
   popd >/dev/null 2>&1
 }
 
@@ -124,17 +124,16 @@ main() {
     echo "[ERROR] dir '${venv_dir}' already exists" >&2
     exit 11
   fi
-  "$_python" -m venv "$venv_dir"
-  . "${venv_dir}/bin/activate"
-  pip-install --upgrade pip wheel setuptools
-  pip-install -r requirements.txt
-  pip-install "qtile==${tag}"
+  uv venv --python="$_python" "$venv_dir"
+  source "${venv_dir}/bin/activate"
+  pip-install --upgrade wheel setuptools
+  pip-install -r <(cat requirements.txt; echo "qtile==${tag}";)
 
   cd "$qtile_extras_dir"
   git checkout "${extras_tag:-${tag}}"
-  pip install .
+  pip-install .
 
-  pip freeze > "${venv_dir}/requirements.txt"
+  uv pip freeze > "${venv_dir}/requirements.txt"
   ln -s -T "${venv_dir}/bin/activate" "$venv_file"
 }
 

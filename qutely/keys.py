@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import shlex
 from qutely.procs import Proc
@@ -23,9 +25,9 @@ from qutely.util import (
     suspend,
     toggle_sticky_window,
     kbd_backlight,
-    lazy_coro,
     provide_terminal,
 )
+from qutely.helpers import lazy_coro
 
 modifier_keys = {
     "M": "M",
@@ -135,7 +137,7 @@ def create_popup(qtile):
 
 keys = KeyList(
     {
-        "M-S-r": reload_qtile,
+        "M-S-r": lazy_coro(reload_qtile, light_theme=False),
         "M-<Escape>": lazy_coro(reload_qtile, light_theme=True),
         "M-C-r": lazy.function(restart_qtile),
         "M-C-q": lazy.shutdown,

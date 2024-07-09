@@ -10,7 +10,7 @@ from qutely.display import (
 )
 from qutely.debug import in_debug_mode
 
-laptop_screen = "eDP1"
+laptop_screen = "eDP-1"
 
 _config = {
     "dunstrc": {

@@ -690,4 +690,4 @@ activate_touchpad = Proc(
     "1",
 )
 kitty = Proc("kitty")
-start_custom_session = Proc("systemctl", "--user", "restart", "compton", bg=True)
+start_custom_session = Proc("systemctl", "--user", "--no-block", "start", "custom-session.target")

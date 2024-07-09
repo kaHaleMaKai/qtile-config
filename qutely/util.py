@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import os
 import sys
 import re
@@ -11,7 +13,7 @@ import subprocess
 import psutil
 from itertools import chain
 from pathlib import Path
-from typing import Iterable, TypedDict, Any, cast, Awaitable
+from typing import Iterable, TypedDict, Any, cast, Awaitable, TYPE_CHECKING
 from libqtile import hook
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
@@ -26,12 +28,12 @@ from libqtile.log_utils import logger
 from qutely.color import complement, add_hashtag
 from qutely.display import is_light_theme, num_screens, THEME_BG_KEY
 
-TERM_SUPPLY_CLASS = "st-term-supply"
-TERM_CLASS = "xterm-256color"
+TERM_SUPPLY_CLASS = "kitty-term-supply"
+TERM_CLASS = "kitty"
 TERM_GROUP = ""
-TERM_ATTRIBUTE = "IS_ST_SUPPLY"
+TERM_ATTRIBUTE = "IS_KITTY_SUPPLY"
 NVIM_SERVER_CACHE_DIR = Path("~/.cache/nvim/servers").expanduser()
-LAPTOP_SCREEN = "eDP1"
+LAPTOP_SCREEN = "eDP-1"
 
 
 class ScreenDict(TypedDict):
@@ -105,6 +107,9 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
         "zoom": 0xF03D,
         "arandr": 0xF109,
         "awiwi": 0xE006,  # 0xF02D,  # 0xE2A2,
+        "opensnitch-ui": 0xF490,
+        "onedrivegui": 0xF0C2,
+        "chromium": 0xE743,
     },
     "name": {
         "vim": 0xE7C5,
@@ -122,12 +127,6 @@ empty_group = Group("")
 groups.append(empty_group)
 # mutscr = mut_scratch.MutableScratch()
 # hook.subscribe.startup_complete(mutscr.qtile_startup)
-
-
-def lazy_coro(f: Awaitable[Any], *args: Any, **kwargs: Any) -> LazyCall:
-    return lazy.function(
-        lambda qtile: qtile.call_soon(asyncio.create_task, f(qtile, *args, **kwargs))
-    )
 
 
 class RingBuffer:
@@ -481,7 +480,7 @@ def stop_distraction_free_mode(qtile: Qtile) -> None:
 
 
 async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
-    logger.info("reloading config (async)")
+    logger.warn("reloading config (async)")
     path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
     await procs.Proc(
@@ -495,10 +494,17 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
     qtile.reload_config()
     hook.fire("user_custom_reload")
     qtile.call_soon(setup_all_group_icons)
-    logger.info("finished reloading config (async)")
-    # qtile.call_soon(reload_kitty_config)
+    logger.warn("finished reloading config (async)")
+    procs.Proc.await_many(
+        render_kitty_config(),
+        reload_nvim_colors(light_theme),
+        procs.start_custom_session,
+    )
+
+
+@hook.subscribe.screens_reconfigured
+async def screens_reconfigured() -> None:
     await render_kitty_config()
-    await reload_nvim_colors(light_theme)
 
 
 async def lock_screen(qtile: Qtile) -> None:
@@ -669,11 +675,11 @@ async def spawn_terminal() -> None:
     from libqtile import qtile
 
     if len(qtile.groups_map[TERM_GROUP].windows) < 2:
-        await new_proc("st", "-c", TERM_SUPPLY_CLASS, "-A", "0.94", close_fds=True)
+        await new_proc("kitty", f"--class={TERM_SUPPLY_CLASS}", close_fds=True)
 
 
 @hook.subscribe.client_new
-def send_st_to_empty_group(window: Window) -> None:
+def send_kitty_to_empty_group(window: Window) -> None:
     if (
         window.get_wm_class()[1] == TERM_SUPPLY_CLASS
         and get_term_supply_status(window) is TerminalSupportStatus.NOT_INITIALIZED
@@ -703,3 +709,22 @@ def hide_empty_group(name: str) -> None:
 @hook.subscribe.user("custom_reload")
 async def init_more_widgets() -> None:
     await kbd_backlight.configure()
+
+
+@hook.subscribe.client_new
+def bring_floating_to_screen(window: Window) -> None:
+    if not window or not window.window:
+        return
+    onscreen_floaters = {"opensnitch-ui"}
+    if (
+        window.get_wm_class()[1] in onscreen_floaters
+        and window.floating
+        and window.get_wm_type() == "dialog"
+    ):
+        from libqtile import qtile
+
+        if TYPE_CHECKING:
+            qtile = cast(Qtile, qtile)
+
+        window.togroup(qtile.current_group.name)
+        window.toscreen(qtile.current_screen.index)

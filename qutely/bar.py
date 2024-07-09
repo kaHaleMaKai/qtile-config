@@ -24,6 +24,7 @@ from qutely.widgets.check_and_warn import CheckAndWarnWidget, CheckState
 # from widgets.contextmenu import ContextMenu, SpawnedMenu
 import datetime
 from qutely import util, color, procs
+from qutely.display import sync_get_xrandr_output
 from pathlib import Path
 
 BAR_HEIGHT = 26
@@ -355,7 +356,7 @@ def get_bar(screen_idx: int):
         "fontsize": 20,
         "markup": True,
     }
-    if util.num_screens > 1:
+    if sync_get_xrandr_output().num_screens > 1:
         if is_primary:
             group_box = GroupBox(
                 name="groupbox-0",
@@ -382,7 +383,7 @@ def get_bar(screen_idx: int):
         )
     widgets.append(group_box)
 
-    if util.num_screens > 1:
+    if sync_get_xrandr_output().num_screens > 1:
         current_screen = widget.CurrentScreen(
             active_text="✔",
             inactive_text="",

@@ -180,7 +180,7 @@ wmname = "LG3D"
 async def autostart_once() -> None:
     logger.info("running startup_once")
     ps = [
-        procs.start_custom_session,
+        procs.xss_lock,
     ]
     await Proc.await_many(*ps)
 
@@ -192,10 +192,12 @@ async def autostart() -> None:
     if not in_debug_mode:
         ps.extend(
             [
+                procs.start_custom_session,
                 util.render_dunstrc(),
-                # util.render_picom_config(),
-                # util.render_kitty_config(),
+                util.render_kitty_config(),
                 util.spawn_terminal(),
+                # util.render_terminalrc(),
+                # util.render_picom_config(),
             ]
         )
     # if is_light_theme:

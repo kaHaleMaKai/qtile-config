@@ -4,8 +4,8 @@ import asyncio
 import shlex
 from qutely.procs import Proc
 from libqtile.config import EzKey
-from libqtile.command import lazy, _LazyTree
-from libqtile.lazy import LazyCall
+from libqtile.command.client import InteractiveCommandClient
+from libqtile.lazy import lazy, LazyCall
 from libqtile.utils import logger
 from qutely.debug import in_debug_mode
 from qutely.util import (
@@ -116,7 +116,7 @@ class KeyList(list):
                 action = lazy.spawn(cmd)
             elif isinstance(cmd, LazyCall):
                 action = cmd
-            elif isinstance(cmd, _LazyTree):
+            elif isinstance(cmd, InteractiveCommandClient):
                 action = cmd()
             elif asyncio.iscoroutinefunction(cmd):
                 action = lazy_coro(cmd)

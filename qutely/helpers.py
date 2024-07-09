@@ -3,8 +3,7 @@ from __future__ import annotations
 import asyncio
 from typing import Any, Awaitable
 
-from libqtile.command import lazy
-from libqtile.lazy import LazyCall
+from libqtile.lazy import lazy, LazyCall
 
 
 def lazy_coro(f: Awaitable[Any], *args: Any, **kwargs: Any) -> LazyCall:

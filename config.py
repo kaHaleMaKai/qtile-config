@@ -1,14 +1,9 @@
-import os
 import re
-import subprocess
 from pathlib import Path
-from libqtile.config import Screen, Group, Drag, Click, Match, ScratchPad, DropDown
-from libqtile.command import lazy
-from libqtile.core.manager import Qtile
+from libqtile.config import Screen, Drag, Click, Match, ScratchPad, DropDown
+from libqtile.lazy import lazy
 from libqtile import hook, layout
-from libqtile.backend.x11.window import Window, XWindow
-from libqtile.group import _Group
-from typing import List, Callable, cast  # noqa: F401
+from libqtile.backend.x11.window import Window
 from libqtile.log_utils import logger
 
 # custom imports – parts of config
@@ -163,7 +158,7 @@ mouse = [
 ]
 
 dgroups_key_binder = None
-dgroups_app_rules = []  # type: List
+dgroups_app_rules = []
 main = None
 follow_mouse_focus = True
 bring_front_click = False

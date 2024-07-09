@@ -18,8 +18,7 @@ from libqtile import hook
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
 from libqtile.group import _Group
-from libqtile.command import lazy
-from libqtile.lazy import LazyCall
+from libqtile.lazy import lazy, LazyCall
 from libqtile.config import Group
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger

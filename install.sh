@@ -10,9 +10,7 @@ qtile_dir="${HOME}/github/qtile/qtile"
 qtile_extras_dir="${HOME}/github/elParaguayo/qtile-extras"
 
 pip-install() {
-  pushd "$cur_dir" >/dev/null 2>&1
-  uv pip install -c constraints.txt "$@"
-  popd >/dev/null 2>&1
+  uv pip install -c "${cur_dir}/constraints.txt" "$@"
 }
 
 print_help() {

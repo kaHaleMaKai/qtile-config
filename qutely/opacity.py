@@ -172,7 +172,7 @@ def reset_opacity(window: Window):
 
 @hook.subscribe.client_name_updated
 def make_calendar_opacque(window: Window):
-    if window.window.get_wm_class()[1] != "thunderbird":
+    if (w := window.window.get_wm_class()) and w[1] != "thunderbird":
         return
     op = get_opacity_spec(window)
     window.opacity = op["value"]

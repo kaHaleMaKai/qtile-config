@@ -72,3 +72,19 @@ wintypes :
 inactive-dim-fixed = false;
 no-fading-openclose = false;
 opacity-rule = ["92:class_g='Neovide'"];
+
+rules = (
+{% for clazz in drop_down_classes %}
+  { match = "class_i = '{{ clazz }}'"; animations = (
+      { triggers = [ "open", "show" ];
+      preset = "fly-in";
+      direction = "up";
+      },
+
+      { triggers = [ "close", "hide" ];
+      preset = "fly-out";
+      direction = "up";
+      },
+      )
+  },
+)

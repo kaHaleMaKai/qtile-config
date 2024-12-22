@@ -21,9 +21,24 @@ _config = {
         "height": 400,
         "offset": [20, 50],
         "urgency": {
-            "low": {"bg": "#323200", "fg": "#e0e000", "frame": "#a0a000", "timeout": "5"},
-            "normal": {"bg": "#301000", "frame": "#e37000", "fg": "#ff8000", "timeout": "30"},
-            "critical": {"bg": "#600000", "frame": "#980000", "fg": "#ff6060", "timeout": "0"},
+            "low": {
+                "bg": "#323200",
+                "fg": "#e0e000",
+                "frame": "#a0a000",
+                "timeout": "5",
+            },
+            "normal": {
+                "bg": "#301000",
+                "frame": "#e37000",
+                "fg": "#ff8000",
+                "timeout": "30",
+            },
+            "critical": {
+                "bg": "#600000",
+                "frame": "#980000",
+                "fg": "#ff6060",
+                "timeout": "0",
+            },
         },
     },
     "compositor": {
@@ -46,7 +61,10 @@ _config = {
         ],
     },
     "terminalrc": {"bg": "#0d0d00"},
-    "kitty.conf": {"font": {"family": "Hack", "size": 9 if is_only_laptop(laptop_screen) else 8}},
+    "kitty.conf": {
+        "font": {"family": "Hack", "size": 9 if is_only_laptop(laptop_screen) else 8}
+    },
+    "drop_down_classes": ["signal", "telegram", "ding"],
 }
 
 _config["compton.conf"] = _config["picom.conf"] = _config["compositor"]
@@ -92,3 +110,11 @@ def get_defaults() -> dict[str, Any]:
 def get_config(key: str) -> dict[str, Any]:
     sub_config = _config[key.replace(".j2", "")]
     return sub_config | get_defaults()
+
+
+def get_kitty_font_size() -> int:
+    return _config["kitty.conf"]["font"]["size"]
+
+
+def set_kitty_font_size(size: int) -> None:
+    _config["kitty.conf"]["font"]["size"] = size

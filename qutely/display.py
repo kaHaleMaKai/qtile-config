@@ -6,10 +6,8 @@ import json
 import yaml
 import pywal
 from pathlib import Path
-from typing import TypedDict, Any, Iterable, NamedTuple
-from libqtile.log_utils import logger
+from typing import TypedDict, Any, NamedTuple
 from asyncio.subprocess import create_subprocess_exec as new_proc, PIPE
-from qutely.helpers import lazy_coro
 
 
 THEME_BG_KEY = "QTILE_LIGHT_THEME"
@@ -103,7 +101,9 @@ def sync_get_xrandr_output() -> VirtualScreen:
 
     proc = new_proc(args=["xrandr"], stdout=PIPE, stderr=PIPE, text=True)
     stdout, stderr = proc.communicate()
-    jc = new_proc(args=["jc", "--xrandr"], stdin=PIPE, stdout=PIPE, stderr=PIPE, text=True)
+    jc = new_proc(
+        args=["jc", "--xrandr"], stdin=PIPE, stdout=PIPE, stderr=PIPE, text=True
+    )
     stdout, stderr = jc.communicate(input=stdout)
     return parse_xrandr(stdout)
 
@@ -114,34 +114,6 @@ async def get_xrandr_output() -> VirtualScreen:
     jc = await new_proc("jc", "--xrandr", stdin=PIPE, stdout=PIPE, stderr=PIPE)
     stdout, stderr = await jc.communicate(input=stdout)
     return parse_xrandr(stdout.decode())
-
-
-def get_screens() -> ScreensDict:
-    import gi  # type: ignore[import]
-
-    gi.require_version("Gdk", "3.0")
-    from gi.repository import Gdk  # type: ignore[import]
-
-    screens: ScreensDict = {"_primary": {}, "screens": {}}  # type: ignore[typeddict-item]
-
-    gdkdsp = Gdk.Display.get_default()
-    for i in range(gdkdsp.get_n_monitors()):
-        monitor = gdkdsp.get_monitor(i)
-        scale = monitor.get_scale_factor()
-        geo = monitor.get_geometry()
-        name = monitor.get_model()
-        screen: PhysicalScreen = {
-            "width": geo.width * scale,
-            "height": geo.height * scale,
-            "is_primary": monitor.is_primary(),
-            "xoffset": geo.x * scale,
-            "yoffset": geo.y * scale,
-        }
-        screens["screens"][name] = screen
-        if screen["is_primary"]:
-            screens["_primary"] = screen
-    logger.error(screens)
-    return screens
 
 
 def is_laptop(name: str) -> bool:

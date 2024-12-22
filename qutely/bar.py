@@ -28,7 +28,7 @@ from qutely.display import sync_get_xrandr_output
 from pathlib import Path
 
 BAR_HEIGHT = 26
-IFACES = ["wlp0s20f3", "usb0", "eth0"]
+IFACES = ["wlan0", "usb0", "eth0", "vpn0"]
 
 PARTITIONS = {
     "/": "M",
@@ -129,7 +129,9 @@ class GroupBox(widget.GroupBox):
                     g
                     for g in groups
                     if g.label
-                    and ((g.windows or g.screen) or g.name in self.always_visible_groups)
+                    and (
+                        (g.windows or g.screen) or g.name in self.always_visible_groups
+                    )
                 ]
         else:
             if self.visible_groups:
@@ -137,7 +139,10 @@ class GroupBox(widget.GroupBox):
                     g
                     for g in groups
                     if g.label
-                    and (g.name in self.visible_groups or g.name in self.always_visible_groups)
+                    and (
+                        g.name in self.visible_groups
+                        or g.name in self.always_visible_groups
+                    )
                 ]
             else:
                 return [g for g in self.qtile.groups if g.label]
@@ -145,9 +150,17 @@ class GroupBox(widget.GroupBox):
 
 class ArrowGraph(_GenPollText):
     defaults = [
-        ("colors", ("005000", "909000", "e00000"), "4-tuple of colors to use for graph"),
+        (
+            "colors",
+            ("005000", "909000", "f08080"),
+            "4-tuple of colors to use for graph",
+        ),
         ("max", 100, "maximum value for graph (greater values will be clipped)"),
-        ("use_diff", False, "if True, then display (current - last) value, else only current"),
+        (
+            "use_diff",
+            False,
+            "if True, then display (current - last) value, else only current",
+        ),
         ("up_first", True, "if True, display up-arrow first, then down-arrow"),
     ]
 
@@ -155,9 +168,9 @@ class ArrowGraph(_GenPollText):
         super().__init__(**config)
         self.add_defaults(ArrowGraph.defaults)
         self.colors = tuple(color.hex_to_dec(c) for c in self.colors)
+        self.up = 0
+        self.down = 0
         if self.use_diff:
-            self.up = 0
-            self.down = 0
             self.poll()
 
     def span(self, text, color):
@@ -172,8 +185,12 @@ class ArrowGraph(_GenPollText):
         else:
             up_value = up
             down_value = down
-        up_color = color.gradient(value=up_value, max_value=self.max, colors=self.colors)
-        down_color = color.gradient(value=down_value, max_value=self.max, colors=self.colors)
+        up_color = color.gradient(
+            value=up_value, max_value=self.max, colors=self.colors
+        )
+        down_color = color.gradient(
+            value=down_value, max_value=self.max, colors=self.colors
+        )
         if self.up_first:
             arrows = self.span("🠩", up_color), self.span("🠫", down_color)
         else:
@@ -183,7 +200,11 @@ class ArrowGraph(_GenPollText):
 
 class DotGraph(_GenPollText):
     defaults = [
-        ("colors", ("00b800", "c0c000", "b80000"), "4-tuple of colors to use for graph"),
+        (
+            "colors",
+            ("00b800", "c0c000", "b80000"),
+            "4-tuple of colors to use for graph",
+        ),
         ("max", 100, "maximum value for graph (greater values will be clipped)"),
         ("graph_length", 4, "number of previous plus current values to be displayed"),
     ]
@@ -207,10 +228,13 @@ class DotGraph(_GenPollText):
 
     def as_dots(self, *values):
         dots = "".join(
-            self.single_dot(*values[i : i + 2]) for i in range(0, self.graph_length - 1, 2)
+            self.single_dot(*values[i : i + 2])
+            for i in range(0, self.graph_length - 1, 2)
         )
         avg = sum(values) / len(values)
-        c = color.gradient(value=avg, max_value=self.max, colors=self.colors, scaling=1.2)
+        c = color.gradient(
+            value=avg, max_value=self.max, colors=self.colors, scaling=1.2
+        )
         return f"<tt><span foreground='#{c}'>{dots}</span></tt>"
 
     def poll(self):
@@ -300,7 +324,9 @@ class BorgBackupWidget(CheckAndWarnWidget):
         )
 
 
-borg_widget = BorgBackupWidget(fontsize=12, ok_text="", update_interval=10, background=background)
+borg_widget = BorgBackupWidget(
+    fontsize=12, ok_text="", update_interval=10, background=background
+)
 
 
 def notify_checkclock_pause(is_paused: bool, _: str):
@@ -417,8 +443,12 @@ def get_bar(screen_idx: int):
     widgets.append(task_list)
 
     kdb_settings = settings | dict(
-        configured_keyboards=["de deadacute", "de"],
-        display_map={"de deadacute": "de", "de": "de (no coding)"},
+        configured_keyboards=["de deadacute", "de", "us"],
+        display_map={
+            "de deadacute": "de",
+            "de": "de (no coding)",
+            "us": "en",
+        },
         foreground=color.MID_GRAY,
     )
     kbd = widget.KeyboardLayout(**kdb_settings)
@@ -503,7 +533,7 @@ def get_bar(screen_idx: int):
     net_graph = ArrowGraph(
         func=get_net_throughput,
         max=(1 << 20),
-        update_interval=1,
+        update_interval=5,
         use_diff=True,
         up_first=False,
         mouse_callbacks={"Button1": proc_fn("bash", "-c", "nmcli n off && nmcli n on")},

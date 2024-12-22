@@ -9,8 +9,11 @@ from libqtile.lazy import lazy, LazyCall
 from libqtile.utils import logger
 from qutely.debug import in_debug_mode
 from qutely.util import (
+    decrease_kitty_font_size,
+    increase_kitty_font_size,
     prev_group,
     next_group,
+    render_kitty_config,
     spawncmd,
     go_to_screen,
     move_to_screen,
@@ -27,7 +30,7 @@ from qutely.util import (
     kbd_backlight,
     provide_terminal,
 )
-from qutely.helpers import lazy_coro
+from qutely.helpers import call_soon, lazy_coro
 
 modifier_keys = {
     "M": "M",
@@ -99,7 +102,8 @@ class KeyList(list):
                     subks = [ks]
                 else:
                     raise TypeError(
-                        "wrong type for key. expected: (str, list, tuple). got: %s" % type(ks)
+                        "wrong type for key. expected: (str, list, tuple). got: %s"
+                        % type(ks)
                     )
                 for k in subks:
                     cmd = v()
@@ -191,8 +195,10 @@ keys = KeyList(
         "M-<F12>": stop_distraction_free_mode,
         "M-p": history_back,
         "M-S-p": history_forward,
-        "M-<Return>": provide_terminal,  # "st"
+        "M-<Return>": provide_terminal,
         "M-<minus>": "xdotool key Menu",
+        "M-<Up>": call_soon(render_kitty_config, 1),
+        "M-<Down>": call_soon(render_kitty_config, -1),
         "M-S-<Left>": "shiftred r-",
         "M-S-<Right>": "shiftred r+",
         "M-S-<Down>": lazy.widget["brightness"].brightness_down(),
@@ -220,6 +226,7 @@ keys = KeyList(
         "M-<F1>": "configure-screens laptop",
         "M-<F2>": "configure-screens home",
         "M-<F3>": "configure-screens work",
+        "M-<F4>": "configure-screens large-screen",
         "<XF86AudioMute>": "configure-volume --toggle",
         "<XF86AudioLowerVolume>": "configure-volume --down",
         "<XF86AudioRaiseVolume>": "configure-volume --up",
@@ -232,7 +239,8 @@ keys = KeyList(
         "M-S-i": lazy.widget["checkclockwidget"].show_schedule(),
         "M-<F6>": create_popup,
         "M-v": lazy.group["signal_scratchpad"].dropdown_toggle("signal"),
-        "M-C-v": lazy.group["zeal_scratchpad"].dropdown_toggle("zeal"),
+        "M-S-v": lazy.group["ding_scratchpad"].dropdown_toggle("ding"),
+        "M-C-v": lazy.group["telegram_scratchpad"].dropdown_toggle("telegram"),
         "M-S-g": "xdotool key Return",
         "M-o": "dunstctl close",
         "M-S-o": "dunstctl close-all",

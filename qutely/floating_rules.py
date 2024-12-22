@@ -13,6 +13,7 @@ rules = {
         "dialog",
         "download",
         "error",
+        "feh-modal",
         "file_progress",
         "notification",
         "splash",
@@ -37,6 +38,11 @@ rules = {
         re.compile("^Polkit-gnome-authentication-agent.*"),
         "fontforge",
         "OneDriveGUI",
+        "wpp",
+        "Nm-connection-editor",
+        "Blueman-manager",
+        "PanGPUI",
+        "Nextcloud",
     ],
     "wm_name": [
         "pinentry",
@@ -48,6 +54,13 @@ rules = {
         "pop-up",
         "filterlist",
     ],
+}
+
+onscreen_floaters = {
+    "opensnitch-ui": {"type": "diaglog"},
+    "PanGPUI": None,
+    "OneDriveGUI": None,
+    "Nextcloud": None,
 }
 
 

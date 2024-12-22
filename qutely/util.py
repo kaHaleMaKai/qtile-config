@@ -22,10 +22,12 @@ from libqtile.lazy import lazy, LazyCall
 from libqtile.config import Group
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
+from qutely.floating_rules import onscreen_floaters
 
 # import qtile_mutable_scratch as mut_scratch
 from qutely.color import complement, add_hashtag
 from qutely.display import is_light_theme, num_screens, THEME_BG_KEY
+from qutely.vars import get_kitty_font_size, set_kitty_font_size
 
 TERM_SUPPLY_CLASS = "kitty-term-supply"
 TERM_CLASS = "kitty"
@@ -54,13 +56,17 @@ def on_reload(f: Any) -> Any:
 # postgres: 0xf703,
 # python: 0xe73cf
 # java: 0xe738
-group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], int]]]] = {
+group_labels: dict[
+    str, dict[str, int | dict[str, int | dict[re.Pattern[str], int]]]
+] = {
     "role": {},
     "class": {
         "firefox": {
             "regexes": {
                 re.compile(r"\(Meeting\).*Microsoft Teams.*Firefox"): 0xF447,
-                re.compile(r"^https://teams.microsoft.com.*Microsoft Teams.*Firefox"): 0xF7C8,
+                re.compile(
+                    r"^https://teams.microsoft.com.*Microsoft Teams.*Firefox"
+                ): 0xF7C8,
             },
             "default": 0xE745,
         },
@@ -86,6 +92,7 @@ group_labels: dict[str, dict[str, int | dict[str, int | dict[re.Pattern[str], in
             "default": 0xF7C8,  # 0xe744,  # 0xf57d,
         },
         "thunderbird": 0xF6ED,
+        "ding": 0xF405,
         "thunderbird-default": 0xF6ED,
         "dbeaver": 0xF472,
         "org.remmina.remmina": 0xE62A,  # 0xf17a,
@@ -199,7 +206,9 @@ def get_group_and_screen_idx(
     qtile: Qtile, offset: int, skip_invisible: bool = False
 ) -> tuple[_Group, int]:
     if offset < -1 or offset > 1:
-        raise ValueError(f"wrong value supportetd. expected: offset in (-1, 0, 1). got: {offset}")
+        raise ValueError(
+            f"wrong value supportetd. expected: offset in (-1, 0, 1). got: {offset}"
+        )
     if skip_invisible or not offset:
         return _get_group_and_screen_idx_dynamic(qtile, offset)
     else:
@@ -435,7 +444,21 @@ async def render_picom_config() -> bool:
     )
 
 
-async def render_kitty_config() -> bool:
+async def increase_kitty_font_size(*_) -> None:
+    await render_kitty_config(1)
+
+
+async def decrease_kitty_font_size(*_) -> None:
+    await render_kitty_config(-1)
+
+
+async def render_kitty_config(font_size_inc: int = 0) -> bool:
+    if font_size_inc:
+        current_size = get_kitty_font_size()
+        new_size = current_size + font_size_inc
+        if not new_size:
+            return
+        set_kitty_font_size(new_size)
     has_changed = await templates.render(
         "kitty.conf",
         "~/.config/kitty",
@@ -483,14 +506,19 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
     path_file = os.path.join("/home", "lars", ".config", "zsh", "path")
     tmp_file = "/tmp/zsh-export-path"
     await procs.Proc(
-        f"/usr/bin/zsh -c 'source {path_file}'", shell=True, env={"QTILE_EXPORT_PATH": tmp_file}
+        f"/usr/bin/zsh -c 'source {path_file}'",
+        shell=True,
+        env={"QTILE_EXPORT_PATH": tmp_file},
     ).run()
+    logger.warn("zsh path_file sourced")
     with open(tmp_file, "r") as f:
         path_env = f.read()
     if path_env.strip():
         os.environ["PATH"] = path_env.strip()
     os.environ[THEME_BG_KEY] = "1" if light_theme else ""
+    logger.warn("triggering qtile reload")
     qtile.reload_config()
+    logger.warn("qtile.reload_config() done")
     hook.fire("user_custom_reload")
     qtile.call_soon(setup_all_group_icons)
     logger.warn("finished reloading config (async)")
@@ -553,7 +581,9 @@ def toggle_sticky_window(qtile: Qtile) -> None:
 
 def get_sticky_index_and_group(window: Window) -> tuple[int, _Group, bool] | None:
     global sticky_windows
-    res = [(i, tup[1], tup[2]) for i, tup in enumerate(sticky_windows) if tup[0] == window]
+    res = [
+        (i, tup[1], tup[2]) for i, tup in enumerate(sticky_windows) if tup[0] == window
+    ]
     # FIXME None would break at call site
     if not res:
         return None
@@ -690,8 +720,7 @@ def send_kitty_to_empty_group(window: Window) -> None:
 @hook.subscribe.group_window_add
 async def add_more_terminals(group: Group, window: Window) -> None:
     if (
-        group.name != TERM_GROUP
-        and window.get_wm_class()[1] == TERM_SUPPLY_CLASS
+        group.name != TERM_GROUP and window.get_wm_class()[1] == TERM_SUPPLY_CLASS
         # and get_term_supply_status(winoow) is TerminalSupportStatus.IN_USE
     ):
         await spawn_terminal()
@@ -712,18 +741,18 @@ async def init_more_widgets() -> None:
 
 @hook.subscribe.client_new
 def bring_floating_to_screen(window: Window) -> None:
-    if not window or not window.window:
+    if not window or not window.window or not window.floating:
         return
-    onscreen_floaters = {"opensnitch-ui"}
-    if (
-        window.get_wm_class()[1] in onscreen_floaters
-        and window.floating
-        and window.get_wm_type() == "dialog"
-    ):
-        from libqtile import qtile
+    if (cls := window.get_wm_class()[1]) not in onscreen_floaters:
+        return
+    props = onscreen_floaters[cls]
+    if props:
+        if t := props.get("type") and window.get_wm_type() != "dialog":
+            return
+    from libqtile import qtile
 
-        if TYPE_CHECKING:
-            qtile = cast(Qtile, qtile)
+    if TYPE_CHECKING:
+        qtile = cast(Qtile, qtile)
 
-        window.togroup(qtile.current_group.name)
-        window.toscreen(qtile.current_screen.index)
+    window.togroup(qtile.current_group.name)
+    window.toscreen(qtile.current_screen.index)

@@ -40,26 +40,45 @@ signal_scratchpad = ScratchPad(
     single=True,
 )
 
-zeal_scratchpad = ScratchPad(
-    "zeal_scratchpad",
+ding_scratchpad = ScratchPad(
+    "ding_scratchpad",
     [
         DropDown(
-            "zeal",
-            ["zeal"],
+            "ding",
+            ["ding"],
             opacity=1,
             on_focus_lost_hide=True,
-            x=0,
+            x=0.05,
             y=0,
-            width=1,
-            height=1,
+            width=0.9,
+            height=0.9,
         ),
     ],
     single=True,
 )
 
+telegram_scratchpad = ScratchPad(
+    "telegram_scratchpad",
+    [
+        DropDown(
+            "telegram",
+            ["telegram-desktop"],
+            opacity=1,
+            on_focus_lost_hide=True,
+            x=0.05,
+            y=0,
+            width=0.9,
+            height=0.9,
+        ),
+    ],
+    single=True,
+)
+
+
 groups = util.groups[:]
 groups.append(signal_scratchpad)
-groups.append(zeal_scratchpad)
+groups.append(ding_scratchpad)
+groups.append(telegram_scratchpad)
 
 matcher = {
     "c": [Match(wm_class="Vivaldi-stable"), Match(wm_class="teams-for-linux")],

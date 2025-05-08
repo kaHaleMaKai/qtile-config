@@ -681,6 +681,7 @@ setxkbmap = Proc("setxkbmap", "de", "deadacute", shell=True)
 fakecam = Proc("fakecam", "start")
 pulseaudio = Proc("pulseaudio", "-D")
 light = Proc("light")
+neochat = Proc("neochat")
 opensnitch = Proc("opensnitch-ui", bg=True)
 activate_touchpad = Proc(
     "xinput",
@@ -691,3 +692,6 @@ activate_touchpad = Proc(
 )
 kitty = Proc("kitty")
 start_custom_session = Proc("systemctl", "--user", "--no-block", "start", "custom-session.target")
+
+gp_saml_gui = Proc("gp-saml-gui", "--gateway", "-P", "vpn-ham.piamedia.com")
+kill_openconnect = Proc("pkexec", "killall", "openconnect")

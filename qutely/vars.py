@@ -14,7 +14,7 @@ laptop_screen = "eDP-1"
 
 _config = {
     "dunstrc": {
-        "font": "Hack",
+        "font": "Hack Nerd Font",
         "fontsize": 9 if is_only_laptop(laptop_screen) else 11,
         "icon_path": "/usr/share/icons/HighContrast/16x16",
         "width": [120, 250],
@@ -62,7 +62,7 @@ _config = {
     },
     "terminalrc": {"bg": "#0d0d00"},
     "kitty.conf": {
-        "font": {"family": "Hack", "size": 9 if is_only_laptop(laptop_screen) else 8}
+        "font": {"family": "Hack Nerd Font", "size": 9 if is_only_laptop(laptop_screen) else 8}
     },
     "drop_down_classes": ["signal", "telegram", "ding"],
 }

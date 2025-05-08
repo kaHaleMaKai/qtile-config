@@ -1,4 +1,5 @@
 cryptography
+dbus-fast
 dbus-next
 ipython
 iwlib

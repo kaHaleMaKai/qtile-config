@@ -36,6 +36,8 @@ full_opacities = {
         "teams-for-linux",
         TERM_CLASS,
         TERM_SUPPLY_CLASS,
+        "ghostty",
+        "com.mitchellh.ghostty",
     },
     "role": {
         "gtkfilechooserdialog",

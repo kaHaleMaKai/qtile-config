@@ -61,6 +61,7 @@ onscreen_floaters = {
     "PanGPUI": None,
     "OneDriveGUI": None,
     "Nextcloud": None,
+    "Nm-connection-editor": None,
 }
 
 

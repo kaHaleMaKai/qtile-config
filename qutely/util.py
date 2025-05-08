@@ -73,10 +73,10 @@ group_labels: dict[
         # "firefox": 0xE745,  # 0xf269,
         "xfce4-terminal": 0xE795,
         TERM_CLASS: {
-            "default": 0xF120,
+            "default": 0xf489,
             "regexes": {
                 re.compile("^[^@]+@.*:"): 0xF1E6,
-                re.compile("^psql@"): 0xF703,
+                re.compile("^psql@"): 0xF0204,
             },
         },
         "vivaldi-stable": {
@@ -87,11 +87,11 @@ group_labels: dict[
         },
         "teams-for-linux": {
             "regexes": {
-                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xF447,
+                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xf02bb,
             },
             "default": 0xF7C8,  # 0xe744,  # 0xf57d,
         },
-        "thunderbird": 0xF6ED,
+        "thunderbird": 0xe744,
         "ding": 0xF405,
         "thunderbird-default": 0xF6ED,
         "dbeaver": 0xF472,
@@ -126,6 +126,7 @@ group_labels: dict[
 
 group_labels["class"]["firefox-nightly"] = group_labels["class"]["firefox"]
 group_labels["class"][TERM_SUPPLY_CLASS] = group_labels["class"][TERM_CLASS]
+group_labels["class"]["thunderbird-default"] = group_labels["class"]["thunderbird"]
 
 group_dict = {name: Group(name) for name in "123456789abcdef"}
 groups = sorted([g for g in group_dict.values()], key=lambda g: g.name)
@@ -217,7 +218,7 @@ def get_group_and_screen_idx(
 
 def _get_group_and_screen_idx_static(qtile: Qtile, offset: int) -> tuple[_Group, int]:
     group = qtile.current_group
-    for i in range(2):
+    for _ in range(2):
         if offset > 0:
             group = group.get_next_group()
         else:
@@ -526,15 +527,18 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
         render_kitty_config(),
         reload_nvim_colors(light_theme),
         procs.start_custom_session,
+        procs.resume_dunst,
     )
 
 
 @hook.subscribe.screens_reconfigured
 async def screens_reconfigured() -> None:
     await render_kitty_config()
+    await procs.resume_dunst.run()
 
 
 async def lock_screen(qtile: Qtile) -> None:
+    await procs.resume_dunst.run()
     await procs.screensaver_cmd.run()
 
 

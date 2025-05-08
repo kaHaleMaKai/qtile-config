@@ -1,18 +1,25 @@
+from __future__ import annotations
+
 import os
 import re
 import math
 import psutil
 import sqlite3
+import subprocess
+from enum import Enum
 from typing import Optional, Any, TYPE_CHECKING, Callable
 from libqtile import bar
 from libqtile.command.base import expose_command
+from libqtile.utils import add_signal_receiver
+from dbus_fast import Message, MessageType, BusType, Variant
+from dbus_fast.aio import MessageBus
 
 if TYPE_CHECKING:
     from libqtile import widget
 else:
     from qtile_extras import widget
 from qtile_extras.widget.decorations import BorderDecoration
-from libqtile.widget.base import Mirror
+from libqtile.widget.base import Mirror, ThreadPoolText
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
@@ -29,6 +36,7 @@ from pathlib import Path
 
 BAR_HEIGHT = 26
 IFACES = ["wlan0", "usb0", "eth0", "vpn0"]
+MAIN_VPN = "openconnect-piam"
 
 PARTITIONS = {
     "/": "M",
@@ -62,7 +70,6 @@ settings = dict(
     foreground=foreground,
 )
 
-
 def proc_fn(*args: str, shell: bool = False) -> Callable[[], None]:
     from libqtile import qtile
 
@@ -73,6 +80,60 @@ def proc_fn(*args: str, shell: bool = False) -> Callable[[], None]:
         qtile.cmd_spawn(cmd_args)
 
     return run
+
+
+class Urgency(Enum):
+    LOW = 0
+    NORMAL = 1
+    CRITICAL = 2
+
+
+class Notifier:
+    IFACE = "org.freedesktop.Notifications"
+    PATH = "/org/freedesktop/Notifications"
+    METHOD = "Notify"
+    SIGNATURE = "susssasa{sv}i"
+
+    def __init__(self, bus: MessageBus, id: int, app: str, default_img: Path | None, low_timeout: int, normal_timeout: int, critical_timeout: int) -> None:
+        self.bus = bus
+        self.id = id
+        self.app = app
+        self.default_img = default_img
+        self.timeouts = {
+            Urgency.LOW: low_timeout,
+            Urgency.NORMAL: normal_timeout,
+            Urgency.CRITICAL: critical_timeout,
+        }
+
+    async def send(self, title: str, msg: str, img: Path | None = None, urgency: Urgency = Urgency.NORMAL) -> None:
+        img_path = img or self.default_img
+        img_string = str(img_path) if img_path else ""
+        msg = Message(
+            destination=self.IFACE,
+            path=self.PATH,
+            interface=self.IFACE,
+            member=self.METHOD,
+            signature=self.SIGNATURE,
+            body=[
+                self.app,
+                self.id,
+                img_string,
+                title,
+                msg,
+                [],
+                {"urgency": Variant("u", urgency.value)},
+                self.timeouts[urgency],
+            ]
+        )
+        res = await self.bus.call(msg)
+        if res.message_type is not MessageType.METHOD_RETURN:
+            logger.warn(f"could not send notification: {title!r}, {msg!r}")
+
+    @classmethod
+    async def of(cls, id: int, app: str, session: bool = True, default_img: Path | None = None, low_timeout: int = 1000, normal_timeout: int = 3000, critical_timeout: int = -1) -> Notifier:
+        t = BusType.SESSION if session else BusType.SYSTEM
+        bus = await MessageBus(bus_type=t).connect()
+        return cls(bus, id, app, default_img, low_timeout, normal_timeout, critical_timeout)
 
 
 class UPowerWidget(widget.UPowerWidget):
@@ -259,6 +320,71 @@ def get_num_procs():
         ),
     )
     return f"<span foreground='#{c}'>{number}</span>"
+
+
+class VpnStatus(ThreadPoolText):
+
+    UP_SYMBOL = f"<span foreground='#{color.MID_GRAY}'></span>  "
+    CONNECTED_MSG = "vpn connected "
+    DISCONNECTED_MSG = "vpn disconnected "
+    VPN_IS_ACTIVE_PATTERN = re.compile(r"GENERAL.STATE:.*\bactivated")
+
+    defaults = [
+        ("vpn", None, "name of the VPN to monitor"),
+    ]
+
+    notifier: Notifier | None
+
+    def __init__(self, **config):
+        ThreadPoolText.__init__(self, "", **config)
+        self.add_defaults(VpnStatus.defaults)
+        self.notifier = None
+
+    async def notify(self, title: str, msg: str, urgency: Urgency) -> None:
+        if not self.notifier:
+            return
+        await self.notifier.send(title=title, msg=msg, urgency=urgency)
+
+    def _on_vpn_change(self, signal: tuple[int, int]) -> None:
+        import asyncio
+
+        state, reason = signal.body
+        if state == 5 and reason == 1:
+            self.update(self.UP_SYMBOL)
+            asyncio.create_task(self.notify("VPN", self.CONNECTED_MSG, Urgency.NORMAL))
+        else:
+            self.update("")
+            if state == 7:
+                asyncio.create_task(self.notify("VPN", self.DISCONNECTED_MSG, Urgency.NORMAL))
+
+    async def _config_async(self):
+        self.notifier = await Notifier.of(app="VPN", id=123654, default_img=Path("/home/lars/images/penguin-sigil.png"))
+        subscribe = await add_signal_receiver(
+            self._on_vpn_change,
+            session_bus=False,
+            signal_name="VpnStateChanged",
+            dbus_interface="org.freedesktop.NetworkManager.VPN.Connection"
+        )
+
+    def poll(self) -> str:
+        p = subprocess.Popen(("nmcli", "con", "show", self.vpn), stdout=subprocess.PIPE, stderr=None, text=True)
+        try:
+            output, _ = p.communicate(timeout=5)
+            if not p.returncode and output and self.VPN_IS_ACTIVE_PATTERN.search(output):
+                return self.UP_SYMBOL
+        except TimeoutError:
+            p.kill(timeout=5)
+        return ""
+
+
+def get_tailscale_state() -> str:
+    p = subprocess.Popen(("tailscale", "status"), stderr=None, stdout=None)
+    rc = p.wait()
+    # tailscale active -> rc=0, else rc=1
+    if not rc:
+        return f"<span foreground='#{color.MID_GRAY}'></span>  "
+    else:
+        return ""
 
 
 def get_net_throughput():
@@ -490,6 +616,13 @@ def get_bar(screen_idx: int):
     brightness = widget.BrightnessControl(**brightness_settings, **settings)
 
     widgets.append(brightness)
+
+    vpn_status = VpnStatus(
+        vpn=MAIN_VPN,
+        update_interval=300,
+        background=background,
+    )
+    widgets.append(vpn_status)
 
     battery = UPowerWidget(
         # battery_name="hidpp_battery_0",

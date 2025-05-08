@@ -241,6 +241,7 @@ keys = KeyList(
         "M-v": lazy.group["signal_scratchpad"].dropdown_toggle("signal"),
         "M-S-v": lazy.group["ding_scratchpad"].dropdown_toggle("ding"),
         "M-C-v": lazy.group["telegram_scratchpad"].dropdown_toggle("telegram"),
+        "M-A-v": lazy.group["neochat_scratchpad"].dropdown_toggle("neochat"),
         "M-S-g": "xdotool key Return",
         "M-o": "dunstctl close",
         "M-S-o": "dunstctl close-all",

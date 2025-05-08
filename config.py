@@ -23,62 +23,76 @@ from qutely.bar import get_bar
 
 NUMBER_OF_TERMINALS = 4
 
-signal_scratchpad = ScratchPad(
-    "signal_scratchpad",
-    [
-        DropDown(
-            "signal",
-            ["signal-desktop"],
-            opacity=1,
-            on_focus_lost_hide=False,
-            x=0.05,
-            y=0,
-            width=0.9,
-            height=0.9,
-        ),
-    ],
-    single=True,
-)
-
-ding_scratchpad = ScratchPad(
-    "ding_scratchpad",
-    [
-        DropDown(
-            "ding",
-            ["ding"],
-            opacity=1,
-            on_focus_lost_hide=True,
-            x=0.05,
-            y=0,
-            width=0.9,
-            height=0.9,
-        ),
-    ],
-    single=True,
-)
-
-telegram_scratchpad = ScratchPad(
-    "telegram_scratchpad",
-    [
-        DropDown(
-            "telegram",
-            ["telegram-desktop"],
-            opacity=1,
-            on_focus_lost_hide=True,
-            x=0.05,
-            y=0,
-            width=0.9,
-            height=0.9,
-        ),
-    ],
-    single=True,
-)
-
-
 groups = util.groups[:]
-groups.append(signal_scratchpad)
-groups.append(ding_scratchpad)
-groups.append(telegram_scratchpad)
+groups.extend([
+    ScratchPad(
+        "signal_scratchpad",
+        [
+            DropDown(
+                "signal",
+                ["signal-desktop"],
+                opacity=1,
+                on_focus_lost_hide=False,
+                x=0.05,
+                y=0,
+                width=0.9,
+                height=0.9,
+                ),
+            ],
+        single=True,
+        ),
+
+    ScratchPad(
+        "ding_scratchpad",
+        [
+            DropDown(
+                "ding",
+                ["ding"],
+                opacity=1,
+                on_focus_lost_hide=True,
+                x=0.05,
+                y=0,
+                width=0.9,
+                height=0.9,
+                ),
+            ],
+        single=True,
+        ),
+
+    ScratchPad(
+        "telegram_scratchpad",
+        [
+            DropDown(
+                "telegram",
+                ["telegram-desktop"],
+                opacity=1,
+                on_focus_lost_hide=True,
+                x=0.05,
+                y=0,
+                width=0.9,
+                height=0.9,
+                ),
+            ],
+        single=True,
+        ),
+
+    ScratchPad(
+        "neochat_scratchpad",
+        [
+            DropDown(
+                "neochat",
+                ["neochat"],
+                opacity=1,
+                on_focus_lost_hide=True,
+                x=0.05,
+                y=0,
+                width=0.9,
+                height=0.9,
+                ),
+            ],
+        single=True,
+        ),
+])
 
 matcher = {
     "c": [Match(wm_class="Vivaldi-stable"), Match(wm_class="teams-for-linux")],
@@ -297,7 +311,6 @@ def set_group_icon(window: Window | None) -> None:
         qtile.current_group.set_label(None)
     else:
         util.set_group_label_from_window_class(window)
-
 
 # @hook.subscribe.user("custom_reload")
 # def setup_all_group_icons() -> None:

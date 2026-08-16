@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 else:
     from qtile_extras import widget
 from qtile_extras.widget.decorations import BorderDecoration
-from libqtile.widget.base import Mirror, ThreadPoolText
+from libqtile.widget.base import BackgroundPoll
 from libqtile.widget.generic_poll_text import GenPollText as _GenPollText
 from libqtile.scratchpad import ScratchPad
 from libqtile.log_utils import logger
@@ -80,7 +80,7 @@ def proc_fn(*args: str, shell: bool = False) -> Callable[[], None]:
     cmd_args += args
 
     def run() -> None:
-        qtile.cmd_spawn(cmd_args)
+        qtile.spawn(cmd_args)
 
     return run
 
@@ -389,7 +389,7 @@ def get_num_procs():
     return f"<span foreground='#{c}'>{number}</span>"
 
 
-class VpnStatus(ThreadPoolText):
+class VpnStatus(BackgroundPoll):
     UP_SYMBOL = f"<span foreground='#{color.MID_GRAY}'></span>  "
     CONNECTED_MSG = "vpn connected "
     DISCONNECTED_MSG = "vpn disconnected "
@@ -402,7 +402,7 @@ class VpnStatus(ThreadPoolText):
     notifier: Notifier | None
 
     def __init__(self, **config):
-        ThreadPoolText.__init__(self, "", **config)
+        BackgroundPoll.__init__(self, "", **config)
         self.add_defaults(VpnStatus.defaults)
         self.notifier = None
 
@@ -789,8 +789,13 @@ def get_bar(screen_idx: int):
     widgets.append(space())
 
     volume_settings = settings | dict(
-        cardid=0,
-        device=None,
+        check_mute_command="qtile-audio is-muted",
+        check_mute_string="yes",
+        get_volume_command="qtile-audio get-volume",
+        mute_command="qtile-audio mute",
+        unmute_command="qtile-audio unmute",
+        volume_down_command="qtile-audio dec",
+        volume_up_command="qtile-audio inc",
         emoji=True,
         fontsize=18,
         font="Ubuntu",
@@ -834,7 +839,7 @@ def get_bar(screen_idx: int):
 
     clock = widget.Clock(format=" %Y-%m-%d %H:%M", **settings)
     widgets.append(clock)
-    layout = widget.CurrentLayout(scale=0.7, **settings)
+    layout = widget.CurrentLayout(scale=0.7, mode="icon", **settings)
     widgets.append(layout)
 
     return bar.Bar(widgets=widgets, size=BAR_HEIGHT, background=BAR_BG)

@@ -19,3 +19,4 @@ aiofiles
 libcst
 ruff
 mypy
+pynvim

@@ -5,7 +5,7 @@ from enum import IntEnum
 from typing import Any, Callable, Optional, Union, cast
 
 from libqtile.command.base import expose_command
-from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL  # type: ignore[import]
+from libqtile.widget.base import BackgroundPoll, ORIENTATION_HORIZONTAL  # type: ignore[import]
 
 from qutely.widgets.lib.notifier import Notifier
 
@@ -27,8 +27,7 @@ Cmd = Union[str, list[str]]
 MaybeInt = Optional[int]
 
 
-class CheckAndWarnWidget(ThreadPoolText):  # type: ignore[misc]
-
+class CheckAndWarnWidget(BackgroundPoll):  # type: ignore[misc]
     orientations = ORIENTATION_HORIZONTAL
 
     defaults = [
@@ -55,7 +54,6 @@ class CheckAndWarnWidget(ThreadPoolText):  # type: ignore[misc]
     ok_text: str
 
     def __init__(self, **config: Any) -> None:
-
         super().__init__(" ", **config)
         self.add_defaults(CheckAndWarnWidget.defaults)
         self.has_error = False
@@ -112,9 +110,9 @@ class CheckAndWarnWidget(ThreadPoolText):  # type: ignore[misc]
 
     def button_press(self, x: int, y: int, button: int) -> None:
         if button == 1:
-            self.cmd_run()
+            self.run()
         elif button == 3:
-            self.cmd_reset()
+            self.reset()
 
 
 # class ProcCheckWidget(CheckAndWarnWidget):

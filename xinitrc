@@ -17,6 +17,6 @@ export LOG_LEVEL=DEBUG
 # export QTILE_MOD_KEY=mod1
 export PYTHONASYNCIODEBUG=1
 
-"${bin_dir}/python" "${bin_dir}/qtile" start --config "${config_dir}/config.py"
+"${bin_dir}/python" "${bin_dir}/qtile" start -b x11 --config "${config_dir}/config.py"
 
 # vim: ft=sh

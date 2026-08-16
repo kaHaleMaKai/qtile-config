@@ -92,7 +92,7 @@ main() {
    fi
 
    local config_dir="${HOME}/.config"
-   if (($test)); then
+   if ((test)); then
      qtile='qtile-test'
    else
      qtile='qtile'
@@ -113,7 +113,7 @@ main() {
     echo '[INFO] not installed yet' >&2
   fi
 
-  if !((do_install)); then
+  if ! ((do_install)); then
     exit
   fi
   echo '[INFO] please make sure to run `apt install python3-gi` as well' >&2

@@ -57,7 +57,7 @@ class WidgetBox(base._Widget):
         base._Widget.__init__(self, bar.CALCULATED, **config)
         self.add_defaults(WidgetBox.defaults)
         self.box_is_open = False
-        self.add_callbacks({"Button1": self.cmd_toggle})
+        self.add_callbacks({"Button1": self.toggle})
 
         if _widgets:
             logger.warning(
@@ -107,7 +107,7 @@ class WidgetBox(base._Widget):
         # Disable drawing of the widget's contents
         for w in self.widgets:
             w.drawer.disable()
-        self.cmd_toggle()
+        self.toggle()
 
     def calculate_length(self):
         return self.layout.width + sum(w.length for w in self.widgets)
@@ -138,7 +138,6 @@ class WidgetBox(base._Widget):
             index += 1
 
         if self.box_is_open:
-
             # Need to reverse list as widgets get added in front of eachother.
             for widget in self.widgets[::-1]:
                 # enable drawing again

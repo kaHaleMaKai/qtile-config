@@ -31,7 +31,7 @@ SUMMARY = "Caps_Lock on"
 MSG = "| A⇬ |"
 
 
-class CapsLockIndicator(base.ThreadPoolText):
+class CapsLockIndicator(base.BackgroundPoll):
     """Really simple widget to show the current Caps Lock state."""
 
     orientations = base.ORIENTATION_HORIZONTAL
@@ -41,7 +41,7 @@ class CapsLockIndicator(base.ThreadPoolText):
     ]
 
     def __init__(self, **config):
-        base.ThreadPoolText.__init__(self, "", **config)
+        base.BackgroundPoll.__init__(self, "", **config)
         self.add_defaults(self.defaults)
         self.is_locked = None
 

@@ -6,7 +6,7 @@ from typing import Generator, List, Any, Union
 from qutely.procs import _dunstify
 from pathlib import Path
 from libqtile.command.base import expose_command
-from libqtile.widget.base import ThreadPoolText, ORIENTATION_HORIZONTAL
+from libqtile.widget.base import BackgroundPoll, ORIENTATION_HORIZONTAL
 from libqtile.widget.textbox import TextBox
 from qutely.widgets.checkclock import (
     Checkclock,
@@ -17,15 +17,14 @@ from qutely.widgets.checkclock import (
 )
 
 
-class CheckclockWidget(ThreadPoolText):
-
+class CheckclockWidget(BackgroundPoll):
     orientations = ORIENTATION_HORIZONTAL
     defaults = [
         ("db_path", "~/.config/qtile/checkclock.sqlite", "path to the sqlite db"),
         ("paused_text", "paused", "text to show when paused"),
         ("time_format", "%H:%M", "strftime-like format for checkclock time"),
         ("active_color", "#ffffff", "color of text in active state"),
-        ("paused_color" "#808080", "color of paused text"),
+        ("paused_color#808080", "color of paused text"),
         ("pause_button", 1, "mouse button to toggle pause"),
         ("done_color", "#00ff00", "color of text when work is done"),
         ("almost_done_color", "#ffff00", "color of text when work is almost done"),
@@ -107,9 +106,9 @@ class CheckclockWidget(ThreadPoolText):
 
     def button_press(self, x: int, y: int, button: int) -> None:
         if button == self.pause_button:
-            self.cmd_toggle_paused()
+            self.toggle_paused()
         elif button in (1, 3):
-            self.cmd_show_schedule()
+            self.show_schedule()
 
     def span(self, text: str, color: str) -> str:
         return f"<span foreground='#{color}'>{text}</span>"
@@ -133,12 +132,16 @@ class CheckclockWidget(ThreadPoolText):
             for start, end in self.checkclock.merge_durations(0):
                 diff = end - start
                 time = as_time(int(diff.total_seconds())).strftime("%k:%M")
-                time_range = f"{start.strftime('%H:%M')} - {end.strftime('%H:%M')}: {time}"
+                time_range = (
+                    f"{start.strftime('%H:%M')} - {end.strftime('%H:%M')}: {time}"
+                )
                 yield time_range
         else:
             for start, end, duration in self.checkclock.get_backlog(days_back):  # type: ignore[assignment]
                 time = as_time(duration).strftime("%k:%M")
-                time_range = f"{start.strftime('%H:%M')} - {end.strftime('%H:%M')}: {time}"
+                time_range = (
+                    f"{start.strftime('%H:%M')} - {end.strftime('%H:%M')}: {time}"
+                )
                 yield time_range
 
     @staticmethod
@@ -198,5 +201,7 @@ class CheckclockWidget(ThreadPoolText):
         diff = sum(total_duration) - exp_duration * int(num_weeks)
         formatted_diff = as_hours_and_minutes(diff)
         color = "green" if diff >= 0 else "red"
-        msg.append(f"<b>total balance:</b> {self.format_msg(formatted_diff, color=color)}")
+        msg.append(
+            f"<b>total balance:</b> {self.format_msg(formatted_diff, color=color)}"
+        )
         _dunstify.run(f"--replace={self.id}", "balance", "\n".join(msg))

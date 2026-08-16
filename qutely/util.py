@@ -387,7 +387,7 @@ def move_window_to_offset_group(offset: int) -> LazyCall:
 def spawncmd(qtile: Qtile) -> None:
     screen = qtile.current_screen.index
     command = "zsh -c '%s'"
-    qtile.cmd_spawncmd(widget=f"prompt-{screen}", command=command)
+    qtile.spawncmd(widget=f"prompt-{screen}", command=command)
 
 
 @lazy.function
@@ -520,7 +520,7 @@ def restart_qtile(qtile: Qtile) -> None:
                 window.opacity = window._full_opacity
             except AttributeError:
                 pass
-    qtile.cmd_restart()
+    qtile.restart()
 
 
 @lazy.function

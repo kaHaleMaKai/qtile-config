@@ -3,11 +3,12 @@ from __future__ import annotations
 import os
 import re
 import math
+import shutil
 import psutil
-import sqlite3
+import asyncio
 import subprocess
 from enum import Enum
-from typing import Optional, Any, TYPE_CHECKING, Callable
+from typing import Optional, Any, TYPE_CHECKING, Callable, override
 from libqtile import bar
 from libqtile.command.base import expose_command
 from libqtile.utils import add_signal_receiver
@@ -35,8 +36,9 @@ from qutely.display import sync_get_xrandr_output
 from pathlib import Path
 
 BAR_HEIGHT = 26
-IFACES = ["wlan0", "usb0", "eth0", "vpn0"]
-MAIN_VPN = "openconnect-piam"
+IFACES = ["wlan0", "usb0", "eth0", "vpn0", "tailscale0"]
+MAIN_VPN = "tailscale0"
+# MAIN_VPN = "openconnect-piam"
 
 PARTITIONS = {
     "/": "M",
@@ -70,6 +72,7 @@ settings = dict(
     foreground=foreground,
 )
 
+
 def proc_fn(*args: str, shell: bool = False) -> Callable[[], None]:
     from libqtile import qtile
 
@@ -94,7 +97,16 @@ class Notifier:
     METHOD = "Notify"
     SIGNATURE = "susssasa{sv}i"
 
-    def __init__(self, bus: MessageBus, id: int, app: str, default_img: Path | None, low_timeout: int, normal_timeout: int, critical_timeout: int) -> None:
+    def __init__(
+        self,
+        bus: MessageBus,
+        id: int,
+        app: str,
+        default_img: Path | None,
+        low_timeout: int,
+        normal_timeout: int,
+        critical_timeout: int,
+    ) -> None:
         self.bus = bus
         self.id = id
         self.app = app
@@ -105,7 +117,13 @@ class Notifier:
             Urgency.CRITICAL: critical_timeout,
         }
 
-    async def send(self, title: str, msg: str, img: Path | None = None, urgency: Urgency = Urgency.NORMAL) -> None:
+    async def send(
+        self,
+        title: str,
+        msg: str,
+        img: Path | None = None,
+        urgency: Urgency = Urgency.NORMAL,
+    ) -> None:
         img_path = img or self.default_img
         img_string = str(img_path) if img_path else ""
         msg = Message(
@@ -123,17 +141,66 @@ class Notifier:
                 [],
                 {"urgency": Variant("u", urgency.value)},
                 self.timeouts[urgency],
-            ]
+            ],
         )
         res = await self.bus.call(msg)
         if res.message_type is not MessageType.METHOD_RETURN:
             logger.warn(f"could not send notification: {title!r}, {msg!r}")
 
+    def sync_send(
+        self,
+        title: str,
+        msg: str,
+        img: Path | None = None,
+        urgency: Urgency = Urgency.NORMAL,
+    ) -> None:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError as e:
+            logger.exception("could not send message synchronously", e)
+            return
+        _ = asyncio.run_coroutine_threadsafe(self.send(title, msg, img, urgency), loop)
+
     @classmethod
-    async def of(cls, id: int, app: str, session: bool = True, default_img: Path | None = None, low_timeout: int = 1000, normal_timeout: int = 3000, critical_timeout: int = -1) -> Notifier:
+    async def of(
+        cls,
+        id: int,
+        app: str,
+        session: bool = True,
+        default_img: Path | None = None,
+        low_timeout: int = 1000,
+        normal_timeout: int = 3000,
+        critical_timeout: int = -1,
+    ) -> Notifier:
         t = BusType.SESSION if session else BusType.SYSTEM
         bus = await MessageBus(bus_type=t).connect()
-        return cls(bus, id, app, default_img, low_timeout, normal_timeout, critical_timeout)
+        return cls(
+            bus, id, app, default_img, low_timeout, normal_timeout, critical_timeout
+        )
+
+    @classmethod
+    def sync_of(
+        cls,
+        id: int,
+        app: str,
+        session: bool = True,
+        default_img: Path | None = None,
+        low_timeout: int = 1000,
+        normal_timeout: int = 3000,
+        critical_timeout: int = -1,
+    ) -> Notifier:
+        task = asyncio.create_task(
+            cls.of(
+                id,
+                app,
+                session,
+                default_imt,
+                low_timeout,
+                normal_timeout,
+                critical_timeout,
+            )
+        )
+        return task.result()
 
 
 class UPowerWidget(widget.UPowerWidget):
@@ -323,11 +390,10 @@ def get_num_procs():
 
 
 class VpnStatus(ThreadPoolText):
-
     UP_SYMBOL = f"<span foreground='#{color.MID_GRAY}'></span>  "
     CONNECTED_MSG = "vpn connected "
     DISCONNECTED_MSG = "vpn disconnected "
-    VPN_IS_ACTIVE_PATTERN = re.compile(r"GENERAL.STATE:.*\bactivated")
+    VPN_IS_ACTIVE_PATTERN = re.compile(r"ipv4.addresses:.*[0-9.]+/[0-9]+$")
 
     defaults = [
         ("vpn", None, "name of the VPN to monitor"),
@@ -340,37 +406,58 @@ class VpnStatus(ThreadPoolText):
         self.add_defaults(VpnStatus.defaults)
         self.notifier = None
 
-    async def notify(self, title: str, msg: str, urgency: Urgency) -> None:
+    def notify(self, title: str, msg: str, urgency: Urgency) -> None:
         if not self.notifier:
             return
-        await self.notifier.send(title=title, msg=msg, urgency=urgency)
+        self.notifier.sync_send(title=title, msg=msg, urgency=urgency)
 
-    def _on_vpn_change(self, signal: tuple[int, int]) -> None:
-        import asyncio
-
+    def _on_vpn_change(self, signal: Message) -> None:
         state, reason = signal.body
         if state == 5 and reason == 1:
             self.update(self.UP_SYMBOL)
-            asyncio.create_task(self.notify("VPN", self.CONNECTED_MSG, Urgency.NORMAL))
+            self.notify("VPN", self.CONNECTED_MSG, Urgency.NORMAL)
         else:
             self.update("")
             if state == 7:
-                asyncio.create_task(self.notify("VPN", self.DISCONNECTED_MSG, Urgency.NORMAL))
+                self.notify("VPN", self.DISCONNECTED_MSG, Urgency.NORMAL)
+
+    def _on_tailscale_change(self, signal: Message) -> None:
+        state, reason = signal.body
+        if state == 5 and reason == 1:
+            self.update(self.UP_SYMBOL)
+            self.notify("VPN", self.CONNECTED_MSG, Urgency.NORMAL)
+        else:
+            self.update("")
+            if state == 7:
+                self.notify("VPN", self.DISCONNECTED_MSG, Urgency.NORMAL)
 
     async def _config_async(self):
-        self.notifier = await Notifier.of(app="VPN", id=123654, default_img=Path("/home/lars/images/penguin-sigil.png"))
+        self.notifier = await Notifier.of(
+            app="VPN",
+            id=123654,
+            default_img=Path("/home/lars/images/penguin-sigil.png"),
+        )
         subscribe = await add_signal_receiver(
             self._on_vpn_change,
             session_bus=False,
             signal_name="VpnStateChanged",
-            dbus_interface="org.freedesktop.NetworkManager.VPN.Connection"
+            dbus_interface="org.freedesktop.NetworkManager.VPN.Connection",
         )
 
     def poll(self) -> str:
-        p = subprocess.Popen(("nmcli", "con", "show", self.vpn), stdout=subprocess.PIPE, stderr=None, text=True)
+        p = subprocess.Popen(
+            ("nmcli", "con", "show", self.vpn),
+            stdout=subprocess.PIPE,
+            stderr=None,
+            text=True,
+        )
         try:
             output, _ = p.communicate(timeout=5)
-            if not p.returncode and output and self.VPN_IS_ACTIVE_PATTERN.search(output):
+            if (
+                not p.returncode
+                and output
+                and self.VPN_IS_ACTIVE_PATTERN.search(output)
+            ):
                 return self.UP_SYMBOL
         except TimeoutError:
             p.kill(timeout=5)
@@ -395,6 +482,8 @@ def get_net_throughput():
 
 
 class BorgBackupWidget(CheckAndWarnWidget):
+    firefox_profile: str | None
+
     borg_state_msgs = {
         CheckState.OK: "has finished",
         CheckState.WARN: "required",
@@ -402,14 +491,25 @@ class BorgBackupWidget(CheckAndWarnWidget):
         CheckState.IN_PROGRESS: "has started",
     }
 
-    dunstify_id = 398437
+    defaults = [
+        ("firefox_profile", None, "name of the firefox profile"),
+    ]
+
+    notifier: Notifier | None
 
     def __init__(self, **config: Any) -> None:
         super().__init__(**config)
+        self.add_defaults(BorgBackupWidget.defaults)
         self.cache_file = Path("/home/lars/.cache/backup-with-borg-state")
         cache_dir = self.cache_file.parent
         if not cache_dir.exists():
             cache_dir.mkdir()
+        self.notifier = None
+
+    async def _config_async(self) -> None:
+        self.notifier = await Notifier.of(
+            app="Borg", id=123655, default_img=Path("/home/lars/images/borg-backup.png")
+        )
 
     def check(self) -> CheckState:
         if not self.cache_file.exists():
@@ -427,8 +527,24 @@ class BorgBackupWidget(CheckAndWarnWidget):
         else:
             return CheckState.ERROR
 
+    def notify(self, title: str, msg: str, urgency: Urgency) -> None:
+        if not self.notifier:
+            return
+        self.notifier.sync_send(title=title, msg=msg, urgency=urgency)
+
     def run(self) -> None:
-        procs._dunstify("starting borg backup")
+        self.notify("borg", "starting backup", Urgency.NORMAL)
+        if self.firefox_profile:
+            try:
+                ff = Path.home() / ".mozilla/firefox"
+                places_bk = ff / "places"
+                places_bk.mkdir(exist_ok=True)
+                bk_filename = datetime.date.today().strftime("places.sqlite-%F")
+                src = ff / f"{self.firefox_profile}/places.sqlite"
+                dest = places_bk / bk_filename
+                _ = shutil.copy(src, dest)
+            except Exception as e:
+                logger.exception("could not copy firefox profile", e)
         procs._borg_backup()
         self.update(text=self.poll(state=CheckState.IN_PROGRESS))
 
@@ -440,18 +556,16 @@ class BorgBackupWidget(CheckAndWarnWidget):
     def on_state_changed(self, current: Optional[CheckState], next: CheckState) -> None:
         if current == next or not current:
             return
-        urgency = "critical" if next is CheckState.ERROR else "normal"
-        procs._dunstify(
-            f"--replace={self.dunstify_id}",
-            "-u",
-            urgency,
-            "borg backup",
-            self.borg_state_msgs[next],
-        )
+        urgency = Urgency.CRITICAL if next is CheckState.ERROR else Urgency.NORMAL
+        self.notify("borg", self.borg_state_msgs[next], urgency)
 
 
 borg_widget = BorgBackupWidget(
-    fontsize=12, ok_text="", update_interval=10, background=background
+    fontsize=12,
+    ok_text="",
+    update_interval=10,
+    background=background,
+    firefox_profile="r3qxgekl.default-nightly",
 )
 
 
@@ -487,6 +601,39 @@ if db_key in os.environ:
     checkclock_args["db_path"] = os.environ[db_key]
 
 # checkclock_widget = CheckclockWidget(**checkclock_args)
+
+
+class KeyboardLayout(widget.KeyboardLayout):
+    def cycle_layouts(self, reverse: bool = False) -> None:
+        """set the next layout in the list of configured keyboard layouts as
+        new current layout in use
+
+        If the current keyboard layout is not in the list, it will set as new
+        layout the first one in the list.
+        """
+
+        current_keyboard = self.backend.get_keyboard()
+        inc = -1 if reverse else 1
+        if current_keyboard in self.configured_keyboards:
+            # iterate the list circularly
+            next_keyboard = self.configured_keyboards[
+                (self.configured_keyboards.index(current_keyboard) + inc)
+                % len(self.configured_keyboards)
+            ]
+        else:
+            next_keyboard = self.configured_keyboards[0]
+
+        self.backend.set_keyboard(next_keyboard, self.option)
+
+        self.tick()
+
+    @expose_command()
+    def next_layout(self) -> None:
+        self.cycle_layouts()
+
+    @expose_command()
+    def prev_layout(self) -> None:
+        self.cycle_layouts(reverse=True)
 
 
 def get_bar(screen_idx: int):
@@ -577,13 +724,16 @@ def get_bar(screen_idx: int):
         },
         foreground=color.MID_GRAY,
     )
-    kbd = widget.KeyboardLayout(**kdb_settings)
+    kbd = KeyboardLayout(**kdb_settings)
 
+    chord_settings = settings | {}
+    chord = widget.Chord(**chord_settings)
     if is_primary:
         widgets.append(borg_widget)
         # widgets.append(checkclock_widget)
         widgets.append(space())
         widgets.append(kbd)
+        widgets.append(chord)
 
         # widgets.append(widget.StatusNotifier(icon_size=18, padding=8, **settings))
         widgets.append(widget.Systray(icon_size=18, padding=12, **settings))
@@ -684,7 +834,7 @@ def get_bar(screen_idx: int):
 
     clock = widget.Clock(format=" %Y-%m-%d %H:%M", **settings)
     widgets.append(clock)
-    layout = widget.CurrentLayoutIcon(scale=0.7, **settings)
+    layout = widget.CurrentLayout(scale=0.7, **settings)
     widgets.append(layout)
 
     return bar.Bar(widgets=widgets, size=BAR_HEIGHT, background=BAR_BG)

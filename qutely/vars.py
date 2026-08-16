@@ -49,8 +49,6 @@ _config = {
         "shadow_opacity": 0.3,
         "fading": True,
         "fade_in_step": 0.06,
-        "backend": "glx",
-        "vsync": "drm",
         "shadow_excludes": [
             {"name": "Notification"},
             {"class": "Conkey"},
@@ -62,7 +60,10 @@ _config = {
     },
     "terminalrc": {"bg": "#0d0d00"},
     "kitty.conf": {
-        "font": {"family": "Hack Nerd Font", "size": 9 if is_only_laptop(laptop_screen) else 8}
+        "font": {
+            "family": "Hack Nerd Font",
+            "size": 9 if is_only_laptop(laptop_screen) else 8,
+        }
     },
     "drop_down_classes": ["signal", "telegram", "ding"],
 }

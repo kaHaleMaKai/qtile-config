@@ -303,6 +303,12 @@ line_height = {{ fontsize }}
   timeout     = {{ values.timeout }}
 
 {% endfor %}
+
+[blocked_usb_device]
+  appname = Usbguard
+  summary = "*blocked"
+  # override the default timeout
+  timeout = 300
 #
 # Every section that isn't one of the above is interpreted as a rules to
 # override settings for certain messages.

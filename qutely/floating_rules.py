@@ -9,6 +9,7 @@ ZOOM_PATTERN = re.compile("^join.*action")
 
 rules = {
     "wm_class": [
+        "AusweisApp",
         "confirm",
         "dialog",
         "download",
@@ -43,16 +44,23 @@ rules = {
         "Blueman-manager",
         "PanGPUI",
         "Nextcloud",
+        re.compile("^Story Editor - .*"),
+        "Evolution-alarm-notify",
     ],
-    "wm_name": [
+    "title": [
         "pinentry",
         "Event Tester",
         "TbSync account manager",
+        re.compile("^OpenSnitch Network Statistics.*"),
+        "Evolution Preferences",
+        "Compose Message",
     ],
     "role": [
         "AlarmWindow",
         "pop-up",
         "filterlist",
+        re.compile("^EMailBrowser-[0-9]+$"),
+        re.compile("^EMsgComposer-.*"),
     ],
 }
 
@@ -78,14 +86,16 @@ def identify_floating(window: Window) -> bool:
 floating_dimensions = {
     "nm-openconnect-auth-dialog": (700, 800),
     "arandr": (600, 600),
+    "org.evolution.gnome": (700, 800),
 }
 
 
 def generate_floating_rules(rules: dict[str, Iterable[str]]) -> Iterable[Match]:
     yield from Floating.default_float_rules
-    for key in ("wm_class", "role"):
+    for key in ("wm_class", "role", "title"):
         for item in rules[key]:
             yield Match(**{key: item})
+    # for item in rules.get("wm_name")
 
 
 def get_floating_rules() -> list[Match]:

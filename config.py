@@ -37,11 +37,10 @@ groups.extend([
                 y=0,
                 width=0.9,
                 height=0.9,
-                ),
-            ],
+            ),
+        ],
         single=True,
-        ),
-
+    ),
     ScratchPad(
         "ding_scratchpad",
         [
@@ -54,11 +53,10 @@ groups.extend([
                 y=0,
                 width=0.9,
                 height=0.9,
-                ),
-            ],
+            ),
+        ],
         single=True,
-        ),
-
+    ),
     ScratchPad(
         "telegram_scratchpad",
         [
@@ -71,11 +69,10 @@ groups.extend([
                 y=0,
                 width=0.9,
                 height=0.9,
-                ),
-            ],
+            ),
+        ],
         single=True,
-        ),
-
+    ),
     ScratchPad(
         "neochat_scratchpad",
         [
@@ -88,17 +85,17 @@ groups.extend([
                 y=0,
                 width=0.9,
                 height=0.9,
-                ),
-            ],
+            ),
+        ],
         single=True,
-        ),
+    ),
 ])
 
 matcher = {
     "c": [Match(wm_class="Vivaldi-stable"), Match(wm_class="teams-for-linux")],
     "e": [
-        Match(wm_class="Evolution"),
-        Match(wm_class="Thunderbird"),
+        Match(wm_class="Org.gnome.Evolution"),
+        Match(wm_class="org.gnome.Evolution"),
         Match(wm_class="thunderbird"),
         Match(wm_class="thunderbird-default"),
     ],
@@ -112,12 +109,10 @@ for g, match in matcher.items():
 
 for group in util.groups:
     if len(group.name) == 1:
-        keys.add_keys(
-            {
-                f"M-{group.name}": util.go_to_group(group),
-                f"M-S-{group.name}": util.move_window_to_group(group.name),
-            }
-        )
+        keys.add_keys({
+            f"M-{group.name}": util.go_to_group(group),
+            f"M-S-{group.name}": util.move_window_to_group(group.name),
+        })
 
 layout_settings = {}
 layout_settings["border_width"] = 0
@@ -182,6 +177,12 @@ mouse = [
         start=lazy.window.get_position(),
     ),
     Drag(
+        [mod_key, "shift"],
+        "Button1",
+        lazy.window.set_size_floating(),
+        start=lazy.window.get_size(),
+    ),
+    Drag(
         [mod_key],
         "Button3",
         lazy.window.set_size_floating(),
@@ -218,16 +219,14 @@ async def autostart() -> None:
     logger.info("running startup")
     ps = [procs.resume_dunst]
     if not in_debug_mode:
-        ps.extend(
-            [
-                procs.start_custom_session,
-                util.render_dunstrc(),
-                util.render_kitty_config(),
-                util.spawn_terminal(),
-                # util.render_terminalrc(),
-                # util.render_picom_config(),
-            ]
-        )
+        ps.extend([
+            procs.start_custom_session,
+            util.render_dunstrc(),
+            util.render_kitty_config(),
+            util.spawn_terminal(),
+            # util.render_terminalrc(),
+            # util.render_picom_config(),
+        ])
     # if is_light_theme:
     #     ps.append(procs.stop_picom)
     # else:
@@ -256,7 +255,7 @@ def handle_floating_windows(window: Window) -> None:
     elif role == "InvitationsDialog":
         window.floating = False
 
-    if dim := floating_dimensions.get(class_):
+    if window.floating and (dim := floating_dimensions.get(class_)):
         window.width, window.height = dim
         window.center()
 
@@ -311,6 +310,7 @@ def set_group_icon(window: Window | None) -> None:
         qtile.current_group.set_label(None)
     else:
         util.set_group_label_from_window_class(window)
+
 
 # @hook.subscribe.user("custom_reload")
 # def setup_all_group_icons() -> None:

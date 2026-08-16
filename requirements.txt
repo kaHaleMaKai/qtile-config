@@ -14,9 +14,8 @@ gobject
 PyGObject
 setproctitle
 xdg
-black
-mypy
-flake8
 xkbcommon
 aiofiles
 libcst
+ruff
+mypy

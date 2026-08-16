@@ -4,6 +4,7 @@ import os
 import sys
 import re
 import math
+import pynvim
 from enum import Enum
 from qutely import procs, templates
 import asyncio
@@ -13,7 +14,7 @@ import subprocess
 import psutil
 from itertools import chain
 from pathlib import Path
-from typing import Iterable, TypedDict, Any, cast, Awaitable, TYPE_CHECKING
+from typing import Generic, TypeVar, TypedDict, Any, cast, TYPE_CHECKING, final
 from libqtile import hook
 from libqtile.core.manager import Qtile
 from libqtile.backend.x11.window import Window, XWindow
@@ -73,7 +74,7 @@ group_labels: dict[
         # "firefox": 0xE745,  # 0xf269,
         "xfce4-terminal": 0xE795,
         TERM_CLASS: {
-            "default": 0xf489,
+            "default": 0xF489,
             "regexes": {
                 re.compile("^[^@]+@.*:"): 0xF1E6,
                 re.compile("^psql@"): 0xF0204,
@@ -87,13 +88,14 @@ group_labels: dict[
         },
         "teams-for-linux": {
             "regexes": {
-                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xf02bb,
+                re.compile(r"\(Meeting\).*Microsoft Teams.*Vivaldi"): 0xF02BB,
             },
             "default": 0xF7C8,  # 0xe744,  # 0xf57d,
         },
-        "thunderbird": 0xe744,
+        "thunderbird": 0xE744,
         "ding": 0xF405,
         "thunderbird-default": 0xF6ED,
+        "org.gnome.evolution": 0xE744,
         "dbeaver": 0xF472,
         "org.remmina.remmina": 0xE62A,  # 0xf17a,
         "pavucontrol": 0xF028,
@@ -136,10 +138,16 @@ groups.append(empty_group)
 # hook.subscribe.startup_complete(mutscr.qtile_startup)
 
 
-class RingBuffer:
-    def __init__(self, size: int, default: Any = None, no_repeat: bool = False) -> None:
+T = TypeVar("T")
+
+
+@final
+class RingBuffer(Generic[T]):
+    def __init__(
+        self, size: int, default: T | None = None, no_repeat: bool = False
+    ) -> None:
         self.size = size
-        self.buffer = [default] * size
+        self.buffer: list[T | None] = [default] * size
         self.pointer = -1
         self.data_length = 0
         self.nr_of_pops = 0
@@ -148,7 +156,7 @@ class RingBuffer:
     def __len__(self) -> int:
         return self.data_length
 
-    def add(self, el: Any) -> None:
+    def add(self, el: T) -> None:
         if self.no_repeat and self.current == el:
             return
         self.data_length = min(self.data_length + 1, self.size)
@@ -157,7 +165,7 @@ class RingBuffer:
             self.current = el
             self.nr_of_pops = 0
 
-    def backward(self) -> Any:
+    def backward(self) -> T | None:
         if self.data_length <= 1:
             return None
         self.data_length -= 1
@@ -166,7 +174,7 @@ class RingBuffer:
         self.nr_of_pops += 1
         return el
 
-    def forward(self) -> Any:
+    def forward(self) -> T | None:
         if not self.nr_of_pops:
             return None
         self.nr_of_pops -= 1
@@ -174,18 +182,33 @@ class RingBuffer:
         return self.current
 
     @property
-    def current(self) -> Any:
+    def current(self) -> T | None:
         return self.buffer[self.pointer]
 
     @current.setter
-    def current(self, el: Any) -> None:
+    def current(self, el: T) -> None:
         self.buffer[self.pointer] = el
 
     def __repr__(self) -> str:
         return str(self.buffer)
 
 
-group_history = RingBuffer(100, no_repeat=True)
+group_history: RingBuffer[Group] = RingBuffer(100, no_repeat=True)
+# window_history: RingBuffer[Window] = RingBuffer(100, no_repeat=True)
+
+
+# @hook.subscribe.client_focus
+# def update_client_history(window: Window) -> None:
+#     from libqtile import qtile
+#
+#     prev_window = window_history.current
+#     if window and window.name:
+#         window_history.add(window)
+#
+#     if not prev_window:
+#         return
+#     if prev_window.group != window.group and prev_window.get_wm_class()[0] == "signal":
+#         qtile.groups_map["signal_scratchpad"].dropdown_toggle("signal")
 
 
 def go_to_group(group: Group) -> LazyCall:
@@ -409,15 +432,24 @@ def go_to_screen(dest_screen: str) -> LazyCall:
     return f
 
 
+def send_nvim_cmd(socket: Path, bg: str) -> None:
+    nvim = pynvim.attach("socket", path=str(socket))
+    try:
+        nvim.lua.utils.ReloadColors({"theme": bg})
+    finally:
+        nvim.close()
+
+
 async def reload_nvim_colors(is_light_theme: bool) -> None:
-    servers = [server for server in NVIM_SERVER_CACHE_DIR.iterdir() if server.is_file()]
-    bg = "light" if is_light_theme else "dark"
-    keys = f":silent call ReloadColors({{'theme': '{bg}', 'force': v:true}})<CR>"
-    tasks = [
-        new_proc("nvim", "--server", str(server), "--remote-keys", keys, close_fds=True)
-        for server in servers
+    servers = [
+        server for server in NVIM_SERVER_CACHE_DIR.iterdir() if server.is_socket()
     ]
-    await asyncio.gather(*tasks)
+    bg = "light" if is_light_theme else "dark"
+    loop = asyncio.get_running_loop()
+    tasks = [
+        loop.run_in_executor(None, send_nvim_cmd, server, bg) for server in servers
+    ]
+    _ = await asyncio.gather(*tasks)
 
 
 async def render_dunstrc() -> bool:
@@ -525,10 +557,10 @@ async def reload_qtile(qtile: Qtile, light_theme: bool = False) -> None:
     logger.warn("finished reloading config (async)")
     procs.Proc.await_many(
         render_kitty_config(),
-        reload_nvim_colors(light_theme),
         procs.start_custom_session,
         procs.resume_dunst,
     )
+    # await reload_nvim_colors(light_theme)
 
 
 @hook.subscribe.screens_reconfigured
@@ -558,9 +590,11 @@ sticky_windows: list[tuple[Window, _Group, bool]] = []
 def stick_win(qtile: Qtile) -> None:
     logger.warn("sticking window")
     global sticky_windows
-    sticky_windows.append(
-        (qtile.current_window, qtile.current_group, qtile.current_window.floating)
-    )
+    sticky_windows.append((
+        qtile.current_window,
+        qtile.current_group,
+        qtile.current_window.floating,
+    ))
     qtile.current_window.floating = True
 
 

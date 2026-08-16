@@ -128,6 +128,8 @@ main() {
   pip-install -r <(cat requirements.txt; echo "qtile==${tag}";)
 
   cd "$qtile_extras_dir"
+  git checkout main
+  git pull
   git checkout "${extras_tag:-${tag}}"
   pip-install .
 

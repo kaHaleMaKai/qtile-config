@@ -42,6 +42,7 @@ rules = {
         "wpp",
         "Nm-connection-editor",
         "Blueman-manager",
+        "Blueman-services",
         "PanGPUI",
         "Nextcloud",
         re.compile("^Story Editor - .*"),
